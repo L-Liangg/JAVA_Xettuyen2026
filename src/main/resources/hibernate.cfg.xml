@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/xettuyen2026?useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">123456789</property>
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.format_sql">true</property>
+        <property name="hibernate.hbm2ddl.auto">validate</property>
+
+        <mapping class="com.xettuyen.entity.ThiSinh"/>
+        <mapping class="com.xettuyen.entity.DiemThi"/>
+        <mapping class="com.xettuyen.entity.Nganh"/>
+        <mapping class="com.xettuyen.entity.NganhToHop"/>
+        <mapping class="com.xettuyen.entity.ToHopMon"/>
+        <mapping class="com.xettuyen.entity.NguyenVong"/>
+        <mapping class="com.xettuyen.entity.DiemCong"/>
+        <mapping class="com.xettuyen.entity.BangQuyDoi"/>
+    </session-factory>
+</hibernate-configuration>
