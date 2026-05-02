@@ -26,10 +26,10 @@ public class NguyenVongImportService {
         ) {
             session.beginTransaction();
 
-            Set<String> existingKeys = new HashSet<>();
-            session.createQuery("SELECT nv_keys FROM NguyenVong", String.class)
+            Map<String, Integer> existingMap = new HashMap<>();
+            session.createQuery("SELECT nv_keys, idnv FROM NguyenVong", Object[].class)
                     .list()
-                    .forEach(existingKeys::add);
+                    .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
@@ -48,6 +48,7 @@ public class NguyenVongImportService {
             }
 
             ArrayList<Pair<NguyenVong, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -69,7 +70,10 @@ public class NguyenVongImportService {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
                         String v = getCellValue(cell);
-                        if (v != null && !v.isBlank()) { isEmptyRow = false; break; }
+                        if (v != null && !v.isBlank()) {
+                            isEmptyRow = false;
+                            break;
+                        }
                     }
                     if (isEmptyRow) continue;
                     result.addError(i + 1, "Thiếu CCCD");
@@ -77,15 +81,33 @@ public class NguyenVongImportService {
                 }
 
                 String maNganh = getCellValue(row.getCell(colIndex.get("mã ngành")));
-                if (maNganh == null || maNganh.isBlank()) { result.addError(i + 1, "Thiếu mã ngành"); continue; }
+                if (maNganh == null || maNganh.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã ngành");
+                    continue;
+                }
 
                 String thuTuNV = getCellValue(row.getCell(colIndex.get("thứ tự nv")));
-                if (thuTuNV == null || thuTuNV.isBlank()) { result.addError(i + 1, "Thiếu thứ tự NV"); continue; }
+                if (thuTuNV == null || thuTuNV.isBlank()) {
+                    result.addError(i + 1, "Thiếu thứ tự NV");
+                    continue;
+                }
 
                 String nvKeys = cccd + "_" + maNganh + "_" + thuTuNV;
 
+                if (seenInFile.contains(nvKeys)) {
+                    result.addError(i + 1, "Trùng khóa '" + nvKeys + "' trong file");
+                    continue;
+                }
+                seenInFile.add(nvKeys);
+
                 NguyenVong nv = new NguyenVong();
-                boolean isNew = !existingKeys.contains(nvKeys);
+                boolean isNew;
+                if (existingMap.containsKey(nvKeys)) {
+                    nv.setIdnv(existingMap.get(nvKeys));
+                    isNew = false;
+                } else {
+                    isNew = true;
+                }
                 nv.setNn_cccd(cccd);
                 nv.setNv_manganh(maNganh);
                 nv.setNv_tt(Integer.parseInt(thuTuNV));

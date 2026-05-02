@@ -49,6 +49,7 @@ public class DiemThiImportService {
             }
 
             ArrayList<Pair<DiemThi, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -76,6 +77,12 @@ public class DiemThiImportService {
                     result.addError(i + 1, "Thiếu CCCD");
                     continue;
                 }
+
+                if (seenInFile.contains(cccd)) {
+                    result.addError(i + 1, "Trùng CCCD '" + cccd + "' trong file");
+                    continue;
+                }
+                seenInFile.add(cccd);
 
                 DiemThi dt = new DiemThi();
                 boolean isNew;

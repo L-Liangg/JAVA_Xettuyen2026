@@ -27,10 +27,10 @@ public class DiemCongImportService {
         ) {
             session.beginTransaction();
 
-            Set<String> existingKeys = new HashSet<>();
-            session.createQuery("SELECT dc_keys FROM DiemCong", String.class)
+            Map<String, Integer> existingMap = new HashMap<>();
+            session.createQuery("SELECT dc_keys, iddiemcong FROM DiemCong", Object[].class)
                     .list()
-                    .forEach(existingKeys::add);
+                    .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
@@ -49,6 +49,7 @@ public class DiemCongImportService {
             }
 
             ArrayList<Pair<DiemCong, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -85,8 +86,21 @@ public class DiemCongImportService {
 
                 String dcKeys = cccd + "_" + maNganh + "_" + phuongThuc;
 
+                if (seenInFile.contains(dcKeys)) {
+                    result.addError(i + 1, "Trùng khóa '" + dcKeys + "' trong file");
+                    continue;
+                }
+                seenInFile.add(dcKeys);
+
                 DiemCong dc = new DiemCong();
-                boolean isNew = !existingKeys.contains(dcKeys);
+                boolean isNew;
+                if (existingMap.containsKey(dcKeys)) {
+                    dc.setIddiemcong(existingMap.get(dcKeys));
+                    isNew = false;
+                } else {
+                    isNew = true;
+                }
+
                 dc.setTs_cccd(cccd);
                 dc.setManganh(maNganh);
                 dc.setPhuongthuc(phuongThuc);

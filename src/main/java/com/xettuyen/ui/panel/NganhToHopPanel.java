@@ -107,11 +107,23 @@ public class NganhToHopPanel extends JPanel {
                     nt.getTh_mon1(), nt.getHsmon1(),
                     nt.getTh_mon2(), nt.getHsmon2(),
                     nt.getTh_mon3(), nt.getHsmon3(),
-                    nt.getN1(), nt.getTO(), nt.getLI(), nt.getHO(),
-                    nt.getSI(), nt.getVA(), nt.getSU(), nt.getDI(),
-                    nt.getTI(), nt.getKHAC(), nt.getKTPL(),
+                    boolToDisplay(nt.getN1()),
+                    boolToDisplay(nt.getTO()),
+                    boolToDisplay(nt.getLI()),
+                    boolToDisplay(nt.getHO()),
+                    boolToDisplay(nt.getSI()),
+                    boolToDisplay(nt.getVA()),
+                    boolToDisplay(nt.getSU()),
+                    boolToDisplay(nt.getDI()),
+                    boolToDisplay(nt.getTI()),
+                    boolToDisplay(nt.getKHAC()),
+                    boolToDisplay(nt.getKTPL()),
                     nt.getDolech()
             });
         }
+    }
+
+    private String boolToDisplay(Boolean val) {
+        return Boolean.TRUE.equals(val) ? "1" : "";
     }
 }

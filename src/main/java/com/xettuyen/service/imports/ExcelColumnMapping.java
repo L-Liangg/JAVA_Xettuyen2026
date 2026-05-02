@@ -65,18 +65,18 @@ public class ExcelColumnMapping {
     public static final Map<String, String> DIEM_THI = new LinkedHashMap<>() {{
         put("cccd", "cccd");
         put("số báo danh", "sobaodanh");
-        put("to", "TO");
-        put("va", "VA");
-        put("li", "LI");
-        put("ho", "HO");
-        put("si", "SI");
-        put("su", "SU");
-        put("di", "DI");
+        put("toán", "TO");
+        put("văn", "VA");
+        put("lí", "LI");
+        put("hóa", "HO");
+        put("sinh", "SI");
+        put("sử", "SU");
+        put("địa", "DI");
         put("ktpl", "KTPL");
-        put("ti", "TI");
+        put("tin", "TI");
         put("cncn", "CNCN");
         put("cnnn", "CNNN");
-        put("n1_thi", "N1_THI");
+        put("n1 thi", "N1_THI");
         put("nk1", "NK1");
         put("nk2", "NK2");
         put("nl1", "NL1");

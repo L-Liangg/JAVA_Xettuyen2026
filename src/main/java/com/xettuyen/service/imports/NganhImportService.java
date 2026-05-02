@@ -49,6 +49,7 @@ public class NganhImportService {
             }
 
             ArrayList<Pair<Nganh, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -76,6 +77,12 @@ public class NganhImportService {
                     result.addError(i + 1, "Thiếu mã ngành");
                     continue;
                 }
+
+                if (seenInFile.contains(maNganh)) {
+                    result.addError(i + 1, "Trùng mã ngành '" + maNganh + "' trong file");
+                    continue;
+                }
+                seenInFile.add(maNganh);
 
                 Nganh nganh = new Nganh();
                 boolean isNew;

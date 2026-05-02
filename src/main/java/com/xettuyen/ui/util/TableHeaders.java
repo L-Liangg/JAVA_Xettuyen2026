@@ -15,7 +15,7 @@ public class TableHeaders {
 
     public static final String[] DIEM_THI = {
             "CCCD", "Số báo danh", "Phương thức",
-            "Toán", "Lý", "Hóa", "Sinh", "Sử", "Địa", "Văn",
+            "Toán", "Lí", "Hóa", "Sinh", "Sử", "Địa", "Văn",
             "N1 thi", "N1 CC", "CNCN", "CNNN", "Tin", "KTPL",
             "NL1", "NK1", "NK2"
     };

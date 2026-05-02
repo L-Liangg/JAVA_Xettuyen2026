@@ -54,6 +54,7 @@ public class ToHopMonImportService {
             }
 
             ArrayList<Pair<ToHopMon, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -85,11 +86,15 @@ public class ToHopMonImportService {
                     continue;
                 }
 
+                if (seenInFile.contains(maToHop)) {
+                    result.addError(i + 1, "Trùng mã tổ hợp '" + maToHop + "' trong file");
+                    continue;
+                }
+                seenInFile.add(maToHop);
+
                 String mon1 = getCellValue(row.getCell(colIndex.get("môn 1")));
                 String mon2 = getCellValue(row.getCell(colIndex.get("môn 2")));
                 String mon3 = getCellValue(row.getCell(colIndex.get("môn 3")));
-
-
 
                 if (mon1 == null || mon1.isBlank()) {
                     result.addError(i + 1, "Thiếu môn 1");

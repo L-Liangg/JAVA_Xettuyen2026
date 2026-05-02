@@ -27,15 +27,16 @@ public class NganhToHopImportService {
         ) {
             session.beginTransaction();
 
-            Set<String> existingKeys = new HashSet<>();
-            session.createQuery("SELECT tb_keys FROM NganhToHop", String.class)
+            Map<String, Integer> existingMap = new HashMap<>();
+            session.createQuery("SELECT tb_keys, id FROM NganhToHop", Object[].class)
                     .list()
-                    .forEach(existingKeys::add);
+                    .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
 
             Row headerRow = sheet.getRow(0);
+
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
@@ -48,13 +49,8 @@ public class NganhToHopImportService {
                 return result;
             }
 
-            if (!colIndex.containsKey("tên tổ hợp")) {
-                result.addError(0, "File thiếu cột 'Tên tổ hợp'");
-                session.getTransaction().rollback();
-                return result;
-            }
-
             ArrayList<Pair<NganhToHop, Boolean>> validEntries = new ArrayList<>();
+            Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
 
@@ -76,7 +72,10 @@ public class NganhToHopImportService {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
                         String v = getCellValue(cell);
-                        if (v != null && !v.isBlank()) { isEmptyRow = false; break; }
+                        if (v != null && !v.isBlank()) {
+                            isEmptyRow = false;
+                            break;
+                        }
                     }
                     if (isEmptyRow) continue;
                     result.addError(i + 1, "Thiếu mã ngành");
@@ -84,15 +83,28 @@ public class NganhToHopImportService {
                 }
 
                 String maToHop = getCellValue(row.getCell(colIndex.get("mã tổ hợp")));
-                if (maToHop == null || maToHop.isBlank()) { result.addError(i + 1, "Thiếu mã tổ hợp"); continue; }
+                if (maToHop == null || maToHop.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã tổ hợp");
+                    continue;
+                }
 
-                String tenToHop = getCellValue(row.getCell(colIndex.get("tên tổ hợp")));
-                if (tenToHop == null || tenToHop.isBlank()) { result.addError(i + 1, "Thiếu tên tổ hợp"); continue; }
+                String tbKeys = maNganh + "_" + maToHop;
 
-                String tbKeys = maNganh + "_" + tenToHop;
+                if (seenInFile.contains(tbKeys)) {
+                    result.addError(i + 1, "Trùng khóa '" + tbKeys + "' trong file");
+                    continue;
+                }
+                seenInFile.add(tbKeys);
 
                 NganhToHop nganhToHop = new NganhToHop();
-                boolean isNew = !existingKeys.contains(tbKeys);
+                boolean isNew;
+                if (existingMap.containsKey(tbKeys)) {
+                    nganhToHop.setId(existingMap.get(tbKeys));
+                    isNew = false;
+                } else {
+                    isNew = true;
+                }
+
                 nganhToHop.setManganh(maNganh);
                 nganhToHop.setMatohop(maToHop);
                 nganhToHop.setTb_keys(tbKeys);
@@ -106,24 +118,24 @@ public class NganhToHopImportService {
                     if (val == null) continue;
 
                     switch (fieldName) {
-                        case "th_mon1"  -> nganhToHop.setTh_mon1(val);
-                        case "hsmon1"   -> nganhToHop.setHsmon1(Byte.parseByte(val));
-                        case "th_mon2"  -> nganhToHop.setTh_mon2(val);
-                        case "hsmon2"   -> nganhToHop.setHsmon2(Byte.parseByte(val));
-                        case "th_mon3"  -> nganhToHop.setTh_mon3(val);
-                        case "hsmon3"   -> nganhToHop.setHsmon3(Byte.parseByte(val));
-                        case "N1"       -> nganhToHop.setN1(val.equals("1"));
-                        case "TO"       -> nganhToHop.setTO(val.equals("1"));
-                        case "LI"       -> nganhToHop.setLI(val.equals("1"));
-                        case "HO"       -> nganhToHop.setHO(val.equals("1"));
-                        case "SI"       -> nganhToHop.setSI(val.equals("1"));
-                        case "VA"       -> nganhToHop.setVA(val.equals("1"));
-                        case "SU"       -> nganhToHop.setSU(val.equals("1"));
-                        case "DI"       -> nganhToHop.setDI(val.equals("1"));
-                        case "TI"       -> nganhToHop.setTI(val.equals("1"));
-                        case "KHAC"     -> nganhToHop.setKHAC(val.equals("1"));
-                        case "KTPL"     -> nganhToHop.setKTPL(val.equals("1"));
-                        case "dolech"   -> nganhToHop.setDolech(new BigDecimal(val));
+                        case "th_mon1" -> nganhToHop.setTh_mon1(val);
+                        case "hsmon1" -> nganhToHop.setHsmon1(Byte.parseByte(val));
+                        case "th_mon2" -> nganhToHop.setTh_mon2(val);
+                        case "hsmon2" -> nganhToHop.setHsmon2(Byte.parseByte(val));
+                        case "th_mon3" -> nganhToHop.setTh_mon3(val);
+                        case "hsmon3" -> nganhToHop.setHsmon3(Byte.parseByte(val));
+                        case "N1" -> nganhToHop.setN1(val.equals("1"));
+                        case "TO" -> nganhToHop.setTO(val.equals("1"));
+                        case "LI" -> nganhToHop.setLI(val.equals("1"));
+                        case "HO" -> nganhToHop.setHO(val.equals("1"));
+                        case "SI" -> nganhToHop.setSI(val.equals("1"));
+                        case "VA" -> nganhToHop.setVA(val.equals("1"));
+                        case "SU" -> nganhToHop.setSU(val.equals("1"));
+                        case "DI" -> nganhToHop.setDI(val.equals("1"));
+                        case "TI" -> nganhToHop.setTI(val.equals("1"));
+                        case "KHAC" -> nganhToHop.setKHAC(val.equals("1"));
+                        case "KTPL" -> nganhToHop.setKTPL(val.equals("1"));
+                        case "dolech" -> nganhToHop.setDolech(new BigDecimal(val));
                     }
                 }
 
