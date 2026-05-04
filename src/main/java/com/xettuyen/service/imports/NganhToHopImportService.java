@@ -12,10 +12,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.Locale;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
 public class NganhToHopImportService {
+
+    private static String normCode(String s) {
+        return s == null ? "" : s.trim().toUpperCase(Locale.ROOT);
+    }
 
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
@@ -31,6 +36,21 @@ public class NganhToHopImportService {
             session.createQuery("SELECT tb_keys, id FROM NganhToHop", Object[].class)
                     .list()
                     .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
+
+                // Preload parent keys to avoid FK constraint failures during persist/merge
+                Map<String, String> nganhCanonicalByNorm = new HashMap<>();
+                session.createQuery("SELECT manganh FROM Nganh", String.class)
+                    .list()
+                    .forEach(code -> {
+                    if (code != null) nganhCanonicalByNorm.put(normCode(code), code.trim());
+                    });
+
+                Map<String, String> toHopCanonicalByNorm = new HashMap<>();
+                session.createQuery("SELECT matohop FROM ToHopMon", String.class)
+                    .list()
+                    .forEach(code -> {
+                    if (code != null) toHopCanonicalByNorm.put(normCode(code), code.trim());
+                    });
 
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
@@ -82,11 +102,29 @@ public class NganhToHopImportService {
                     continue;
                 }
 
+                String maNganhCanonical = nganhCanonicalByNorm.get(normCode(maNganh));
+                if (maNganhCanonical == null || maNganhCanonical.isBlank()) {
+                    result.addError(i + 1,
+                            "Mã ngành '" + maNganh.trim() + "' không tồn tại trong hệ thống. " +
+                                    "Hãy import/nhập Ngành trước rồi import Ngành–Tổ hợp.");
+                    continue;
+                }
+                maNganh = maNganhCanonical;
+
                 String maToHop = getCellValue(row.getCell(colIndex.get("mã tổ hợp")));
                 if (maToHop == null || maToHop.isBlank()) {
                     result.addError(i + 1, "Thiếu mã tổ hợp");
                     continue;
                 }
+
+                String maToHopCanonical = toHopCanonicalByNorm.get(normCode(maToHop));
+                if (maToHopCanonical == null || maToHopCanonical.isBlank()) {
+                    result.addError(i + 1,
+                            "Mã tổ hợp '" + maToHop.trim() + "' không tồn tại trong hệ thống. " +
+                                    "Hãy import/nhập Tổ hợp môn trước rồi import Ngành–Tổ hợp.");
+                    continue;
+                }
+                maToHop = maToHopCanonical;
 
                 String tbKeys = maNganh + "_" + maToHop;
 

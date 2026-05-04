@@ -28,10 +28,15 @@ public class ThiSinhImportService {
 
             session.beginTransaction();
 
-            Map<String, Integer> existingMap = new HashMap<>();
-            session.createQuery("SELECT cccd, idthisinh FROM ThiSinh", Object[].class)
+                Map<String, Integer> existingIdByCccd = new HashMap<>();
+                Map<String, String> existingPasswordByCccd = new HashMap<>();
+                session.createQuery("SELECT cccd, idthisinh, password FROM ThiSinh", Object[].class)
                     .list()
-                    .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
+                    .forEach(row -> {
+                    String cccd = (String) row[0];
+                    existingIdByCccd.put(cccd, (Integer) row[1]);
+                    existingPasswordByCccd.put(cccd, (String) row[2]);
+                    });
 
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getLastRowNum();
@@ -89,8 +94,8 @@ public class ThiSinhImportService {
 
                 boolean isNew;
                 ts.setCccd(cccd);
-                if (existingMap.containsKey(cccd)) {
-                    ts.setIdthisinh(existingMap.get(cccd));
+                if (existingIdByCccd.containsKey(cccd)) {
+                    ts.setIdthisinh(existingIdByCccd.get(cccd));
                     isNew = false;
                 } else {
                     isNew = true;
@@ -110,11 +115,24 @@ public class ThiSinhImportService {
                         case "ten" -> ts.setTen(val);
                         case "ngay_sinh" -> ts.setNgay_sinh(val);
                         case "dien_thoai" -> ts.setDien_thoai(val);
+                        case "password" -> ts.setPassword(val);
                         case "gioi_tinh" -> ts.setGioi_tinh(val);
                         case "email" -> ts.setEmail(val);
                         case "noi_sinh" -> ts.setNoi_sinh(val);
                         case "doi_tuong" -> ts.setDoi_tuong(val);
                         case "khu_vuc" -> ts.setKhu_vuc(val);
+                    }
+                }
+
+                // Mặc định password = CCCD nếu thiếu/để trống trong file.
+                // Nếu bản ghi đã tồn tại thì ưu tiên giữ password cũ (tránh merge ghi null).
+                String importedPassword = ts.getPassword();
+                if (importedPassword == null || importedPassword.isBlank()) {
+                    String existingPassword = existingPasswordByCccd.get(cccd);
+                    if (existingPassword != null && !existingPassword.isBlank()) {
+                        ts.setPassword(existingPassword);
+                    } else {
+                        ts.setPassword(cccd);
                     }
                 }
 

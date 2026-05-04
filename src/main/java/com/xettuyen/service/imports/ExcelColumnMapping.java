@@ -12,6 +12,7 @@ public class ExcelColumnMapping {
         put("tên", "ten");
         put("ngày sinh", "ngay_sinh");
         put("điện thoại", "dien_thoai");
+        put("mật khẩu", "password");
         put("giới tính", "gioi_tinh");
         put("email", "email");
         put("nơi sinh", "noi_sinh");

@@ -3,6 +3,7 @@ package com.xettuyen.service.impl;
 import com.xettuyen.entity.ThiSinh;
 import com.xettuyen.repository.ThiSinhRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static com.xettuyen.config.AppConstants.PAGE_SIZE;
@@ -28,10 +29,23 @@ public class ThiSinhService {
     }
 
     public ThiSinh findByCccd(String cccd) {
-        return repository.findByCccd(cccd);
+        return repository.findByCccd(cccd); 
+    }
+
+    public void save(ThiSinh thiSinh) {
+        if (thiSinh == null) return;
+        thiSinh.setUpdated_at(LocalDate.now());
+        repository.save(thiSinh);
     }
 
     public void update(ThiSinh thiSinh) {
+        if (thiSinh == null) return;
+        thiSinh.setUpdated_at(LocalDate.now());
         repository.update(thiSinh);
+    }
+
+    public void delete(ThiSinh thiSinh) {
+        if (thiSinh == null) return;
+        repository.delete(thiSinh);
     }
 }

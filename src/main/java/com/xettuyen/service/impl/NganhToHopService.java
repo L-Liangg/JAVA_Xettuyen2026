@@ -13,6 +13,11 @@ public class NganhToHopService {
         return repository.findAll(page, PAGE_SIZE);
     }
 
+    public NganhToHop findByTbKeys(String tbKeys) {
+        if (tbKeys == null || tbKeys.isBlank()) return null;
+        return repository.findByTbKeys(tbKeys.trim());
+    }
+
     public int getTotalPages() {
         return repository.getTotalPages();
     }

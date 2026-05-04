@@ -11,6 +11,7 @@ import org.hibernate.Session;
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.*;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
@@ -39,10 +40,10 @@ public class DiemThiImportService {
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
-                if (val != null) colIndex.put(val.toLowerCase().trim(), cell.getColumnIndex());
+                if (val != null) colIndex.put(normHeader(val), cell.getColumnIndex());
             }
 
-            if (!colIndex.containsKey("cccd")) {
+            if (!colIndex.containsKey(normHeader("cccd"))) {
                 result.addError(0, "File thiếu cột khóa 'CCCD'");
                 session.getTransaction().rollback();
                 return result;
@@ -66,7 +67,7 @@ public class DiemThiImportService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String cccd = getCellValue(row.getCell(colIndex.get("cccd")));
+                String cccd = getCellValue(row.getCell(colIndex.get(normHeader("cccd"))));
                 if (cccd == null || cccd.isBlank()) {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
@@ -95,7 +96,7 @@ public class DiemThiImportService {
                 }
 
                 for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI.entrySet()) {
-                    String excelCol = entry.getKey();
+                    String excelCol = normHeader(entry.getKey());
                     String fieldName = entry.getValue();
                     if (!colIndex.containsKey(excelCol)) continue;
 
@@ -169,5 +170,12 @@ public class DiemThiImportService {
         }
 
         return result;
+    }
+
+    private static String normHeader(String value) {
+        if (value == null) return "";
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return normalized.toLowerCase().trim().replaceAll("\\s+", " ");
     }
 }
