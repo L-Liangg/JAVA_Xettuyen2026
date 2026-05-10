@@ -3,9 +3,10 @@ package com.xettuyen.ui.util;
 public class TableHeaders {
 
     public static final String[] BANG_QUY_DOI = {
+            "Mã quy đổi",
             "Phương thức", "Tổ hợp", "Môn",
             "Điểm A", "Điểm B", "Điểm C", "Điểm D",
-            "Mã quy đổi", "Phân vị"
+            "Phân vị"
     };
 
     public static final String[] DIEM_CONG = {
