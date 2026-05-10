@@ -11,6 +11,7 @@ import org.hibernate.Session;
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
+
 import java.util.*;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
@@ -39,10 +40,12 @@ public class DiemThiImportService {
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
+
                 if (val != null) colIndex.put(val.toLowerCase().trim(), cell.getColumnIndex());
             }
 
             if (!colIndex.containsKey("cccd")) {
+
                 result.addError(0, "File thiếu cột khóa 'CCCD'");
                 session.getTransaction().rollback();
                 return result;
@@ -67,6 +70,7 @@ public class DiemThiImportService {
                 if (row == null) continue;
 
                 String cccd = getCellValue(row.getCell(colIndex.get("cccd")));
+
                 if (cccd == null || cccd.isBlank()) {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
@@ -96,6 +100,7 @@ public class DiemThiImportService {
 
                 for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI.entrySet()) {
                     String excelCol = entry.getKey();
+
                     String fieldName = entry.getValue();
                     if (!colIndex.containsKey(excelCol)) continue;
 

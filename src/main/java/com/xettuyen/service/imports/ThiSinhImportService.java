@@ -89,8 +89,10 @@ public class ThiSinhImportService {
 
                 boolean isNew;
                 ts.setCccd(cccd);
+
                 if (existingMap.containsKey(cccd)) {
                     ts.setIdthisinh(existingMap.get(cccd));
+
                     isNew = false;
                 } else {
                     isNew = true;

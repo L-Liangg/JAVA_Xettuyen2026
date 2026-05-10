@@ -16,7 +16,6 @@ import java.util.*;
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
 public class NganhToHopImportService {
-
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
 

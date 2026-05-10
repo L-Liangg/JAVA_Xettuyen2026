@@ -13,7 +13,6 @@ public class ThiSinhRepository extends BaseRepository<ThiSinh> {
         super(ThiSinh.class);
     }
 
-
     public List<ThiSinh> search(String keyword, int page, int pageSize) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<ThiSinh> query = session.createQuery(
@@ -36,6 +35,33 @@ public class ThiSinhRepository extends BaseRepository<ThiSinh> {
         }
     }
 
+    // AND search: cccd AND sobaodanh
+    public List<ThiSinh> searchAnd(String cccd, String sobaodanh, int page, int pageSize) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            String hql = "FROM ThiSinh t WHERE (:cccd = '' OR t.cccd LIKE :cccdKw) AND (:sbd = '' OR t.sobaodanh LIKE :sbdKw)";
+            Query<ThiSinh> query = session.createQuery(hql, ThiSinh.class);
+            query.setParameter("cccd", cccd);
+            query.setParameter("cccdKw", "%" + cccd + "%");
+            query.setParameter("sbd", sobaodanh);
+            query.setParameter("sbdKw", "%" + sobaodanh + "%");
+            query.setFirstResult((page - 1) * pageSize);
+            query.setMaxResults(pageSize);
+            return query.list();
+        }
+    }
+
+    public long countSearchAnd(String cccd, String sobaodanh) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            String hql = "SELECT COUNT(t) FROM ThiSinh t WHERE (:cccd = '' OR t.cccd LIKE :cccdKw) AND (:sbd = '' OR t.sobaodanh LIKE :sbdKw)";
+            return session.createQuery(hql, Long.class)
+                    .setParameter("cccd", cccd)
+                    .setParameter("cccdKw", "%" + cccd + "%")
+                    .setParameter("sbd", sobaodanh)
+                    .setParameter("sbdKw", "%" + sobaodanh + "%")
+                    .uniqueResult();
+        }
+    }
+
     public ThiSinh findByCccd(String cccd) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.createQuery("FROM ThiSinh WHERE cccd = :cccd", ThiSinh.class)
@@ -44,3 +70,4 @@ public class ThiSinhRepository extends BaseRepository<ThiSinh> {
         }
     }
 }
+
