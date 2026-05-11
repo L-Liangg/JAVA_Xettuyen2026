@@ -21,6 +21,12 @@ public class TableHeaders {
             "NL1", "NK1", "NK2"
     };
 
+    public static final String[] DIEM_THI_DGNL_VSAT = {
+            "CCCD", "Đợt thi", "Mã đợt thi", "Ngày thi", "Năm thi",
+            "Mã môn thi", "Tên môn thi", "Điểm", "Thang điểm",
+            "Mã DVTCTDL", "Tên DVTCTDL"
+    };
+
     public static final String[] NGANH = {
             "Mã ngành", "Tên ngành", "Tổ hợp gốc", "Chỉ tiêu",
             "Điểm sàn", "Điểm trúng tuyển", "Tuyển thẳng",
@@ -43,7 +49,7 @@ public class TableHeaders {
 
     public static final String[] THI_SINH = {
             "CCCD", "Số báo danh", "Họ", "Tên", "Ngày sinh",
-            "Điện thoại", "Giới tính", "Email", "Nơi sinh",
+            "Điện thoại", "Giới tính", "Email", "Mật khẩu", "Nơi sinh",
             "Ngày cập nhật", "Đối tượng", "Khu vực"
     };
 

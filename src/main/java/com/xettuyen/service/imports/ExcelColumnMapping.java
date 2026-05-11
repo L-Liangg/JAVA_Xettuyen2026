@@ -14,6 +14,7 @@ public class ExcelColumnMapping {
         put("điện thoại", "dien_thoai");
         put("giới tính", "gioi_tinh");
         put("email", "email");
+        put("mật khẩu", "mat_khau");
         put("nơi sinh", "noi_sinh");
         put("đối tượng", "doi_tuong");
         put("khu vực", "khu_vuc");
@@ -80,6 +81,20 @@ public class ExcelColumnMapping {
         put("nk1", "NK1");
         put("nk2", "NK2");
         put("nl1", "NL1");
+    }};
+
+    public static final Map<String, String> DIEM_THI_DGNL_VSAT = new LinkedHashMap<>() {{
+        put("cccd", "cccd");
+        put("đợt thi", "dot_thi");
+        put("mã đợt thi", "ma_dot_thi");
+        put("ngày thi", "ngay_thi");
+        put("năm thi", "nam");
+        put("mã môn thi", "ma_mon");
+        put("tên môn thi", "ten_mon");
+        put("điểm", "diem");
+        put("thang điểm", "thang_diem");
+        put("mã dvtctdl", "ma_dvtctdl");
+        put("tên dvtctdl", "ten_dvtctdl");
     }};
 
     public static final Map<String, String> NGUYEN_VONG = new LinkedHashMap<>() {{

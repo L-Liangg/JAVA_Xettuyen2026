@@ -31,6 +31,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new ToHopMonPanel(), "tohop_mon");
         contentPanel.add(new NganhToHopPanel(), "nganh_tohop");
         contentPanel.add(new DiemThiPanel(), "diem_thi");
+        contentPanel.add(new DiemThiDgnlVsatPanel(), "diem_thi_dgnl_vsat");
         contentPanel.add(new DiemCongPanel(), "diem_cong");
         contentPanel.add(new NguyenVongPanel(), "nguyen_vong");
         contentPanel.add(new BangQuyDoiPanel(), "bang_quy_doi");
@@ -60,11 +61,12 @@ public class MainFrame extends JFrame {
         panel.add(Box.createVerticalStrut(20));
 
         // Menu items
-        addMenuItem(panel, "Thí sinh",       "thi_sinh");
+        addMenuItem(panel, "Thí sinh",        "thi_sinh");
         addMenuItem(panel, "Ngành",           "nganh");
-        addMenuItem(panel, "Tổ hợp môn",     "tohop_mon");
-        addMenuItem(panel, "Ngành - Tổ hợp", "nganh_tohop");
+        addMenuItem(panel, "Tổ hợp môn",      "tohop_mon");
+        addMenuItem(panel, "Ngành - Tổ hợp",  "nganh_tohop");
         addMenuItem(panel, "Điểm thi",        "diem_thi");
+        addMenuItem(panel, "Điểm DGNL/VSAT",  "diem_thi_dgnl_vsat");
         addMenuItem(panel, "Điểm cộng",       "diem_cong");
         addMenuItem(panel, "Nguyện vọng",     "nguyen_vong");
         addMenuItem(panel, "Bảng quy đổi",    "bang_quy_doi");

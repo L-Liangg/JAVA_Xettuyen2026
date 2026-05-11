@@ -1,21 +1,24 @@
 package com.xettuyen.service.imports;
 
 import com.xettuyen.config.HibernateUtil;
-import com.xettuyen.entity.ThiSinh;
+import com.xettuyen.entity.DiemThiDgnlVsat;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import org.apache.commons.math3.util.Pair;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Session;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.*;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
-public class ThiSinhImportService {
+public class DiemThiDgnlVsatImportService {
 
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
@@ -25,11 +28,10 @@ public class ThiSinhImportService {
                 Workbook workbook = new XSSFWorkbook(fis);
                 Session session = HibernateUtil.getSessionFactory().openSession()
         ) {
-
             session.beginTransaction();
 
             Map<String, Integer> existingMap = new HashMap<>();
-            session.createQuery("SELECT cccd, idthisinh FROM ThiSinh", Object[].class)
+            session.createQuery("SELECT dv_keys, id FROM DiemThiDgnlVsat", Object[].class)
                     .list()
                     .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
@@ -43,13 +45,16 @@ public class ThiSinhImportService {
                 if (val != null) colIndex.put(val.toLowerCase().trim(), cell.getColumnIndex());
             }
 
-            if (!colIndex.containsKey("cccd")) {
-                result.addError(0, "File thiếu cột khóa 'CCCD'");
+            if (!colIndex.containsKey("cccd")
+                    || !colIndex.containsKey("mã môn thi")
+                    || !colIndex.containsKey("mã đợt thi")
+                    || !colIndex.containsKey("đợt thi")) {
+                result.addError(0, "File thiếu cột khóa 'CCCD', 'Mã môn thi','Đợt thi' hoặc 'Mã đợt thi'");
                 session.getTransaction().rollback();
                 return result;
             }
 
-            ArrayList<Pair<ThiSinh, Boolean>> validEntries = new ArrayList<>();
+            ArrayList<Pair<DiemThiDgnlVsat, Boolean>> validEntries = new ArrayList<>();
             Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
@@ -72,33 +77,53 @@ public class ThiSinhImportService {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
                         String v = getCellValue(cell);
-                        if (v != null && !v.isBlank()) { isEmptyRow = false; break; }
+                        if (v != null && !v.isBlank()) {
+                            isEmptyRow = false;
+                            break;
+                        }
                     }
                     if (isEmptyRow) continue;
                     result.addError(i + 1, "Thiếu CCCD");
                     continue;
                 }
 
-                if (seenInFile.contains(cccd)) {
-                    result.addError(i + 1, "Trùng CCCD '" + cccd + "' trong file");
+                String maMon = getCellValue(row.getCell(colIndex.get("mã môn thi")));
+                if (maMon == null || maMon.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã môn thi");
                     continue;
                 }
-                seenInFile.add(cccd);
 
-                ThiSinh ts = new ThiSinh();
+                String maDotThi = getCellValue(row.getCell(colIndex.get("mã đợt thi")));
+                if (maDotThi == null || maDotThi.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã đợt thi");
+                    continue;
+                }
 
+                String dotThi = getCellValue(row.getCell(colIndex.get("đợt thi")));
+                if (dotThi == null || dotThi.isBlank()) { result.addError(i + 1, "Thiếu đợt thi"); continue; }
+
+                String dvKeys = cccd + "_" + maMon + "_" + maDotThi + "_" + dotThi;
+
+                if (seenInFile.contains(dvKeys)) {
+                    result.addError(i + 1, "Trùng khóa '" + dvKeys + "' trong file");
+                    continue;
+                }
+                seenInFile.add(dvKeys);
+
+                DiemThiDgnlVsat dt = new DiemThiDgnlVsat();
                 boolean isNew;
-                ts.setCccd(cccd);
-
-                if (existingMap.containsKey(cccd)) {
-                    ts.setIdthisinh(existingMap.get(cccd));
-
+                dt.setCccd(cccd);
+                dt.setMa_mon(maMon);
+                dt.setMa_dot_thi(maDotThi);
+                dt.setDv_keys(dvKeys);
+                if (existingMap.containsKey(dvKeys)) {
+                    dt.setId(existingMap.get(dvKeys));
                     isNew = false;
                 } else {
                     isNew = true;
                 }
 
-                for (Map.Entry<String, String> entry : ExcelColumnMapping.THI_SINH.entrySet()) {
+                for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI_DGNL_VSAT.entrySet()) {
                     String excelCol = entry.getKey();
                     String fieldName = entry.getValue();
                     if (!colIndex.containsKey(excelCol)) continue;
@@ -107,22 +132,18 @@ public class ThiSinhImportService {
                     if (val == null) continue;
 
                     switch (fieldName) {
-                        case "sobaodanh" -> ts.setSobaodanh(val);
-                        case "ho" -> ts.setHo(val);
-                        case "ten" -> ts.setTen(val);
-                        case "ngay_sinh" -> ts.setNgay_sinh(val);
-                        case "dien_thoai" -> ts.setDien_thoai(val);
-                        case "gioi_tinh" -> ts.setGioi_tinh(val);
-                        case "email" -> ts.setEmail(val);
-                        case "mat_khau" -> ts.setPassword(val);
-                        case "noi_sinh" -> ts.setNoi_sinh(val);
-                        case "doi_tuong" -> ts.setDoi_tuong(val);
-                        case "khu_vuc" -> ts.setKhu_vuc(val);
+                        case "dot_thi" -> dt.setDot_thi(val);
+                        case "ngay_thi" -> dt.setNgay_thi(val);
+                        case "nam" -> dt.setNam(Integer.parseInt(val));
+                        case "ten_mon" -> dt.setTen_mon(val);
+                        case "diem" -> dt.setDiem(new BigDecimal(val));
+                        case "thang_diem" -> dt.setThang_diem(val);
+                        case "ma_dvtctdl" -> dt.setMa_dvtctdl(val);
+                        case "ten_dvtctdl" -> dt.setTen_dvtctdl(val);
                     }
                 }
 
-                ts.setUpdated_at(LocalDate.now());
-                validEntries.add(new Pair<>(ts, isNew));
+                validEntries.add(new Pair<>(dt, isNew));
             }
 
             if (result.hasErrors()) {
@@ -144,21 +165,17 @@ public class ThiSinhImportService {
                 int percent = (int) ((double) (i + 1) / validEntriesCount * 100);
                 dialog.updateProgress(percent, "Đang lưu dữ liệu " + (i + 1) + " / " + validEntriesCount);
 
-                ThiSinh ts = validEntries.get(i).getFirst();
+                DiemThiDgnlVsat dt = validEntries.get(i).getFirst();
                 boolean isNew = validEntries.get(i).getSecond();
 
                 try {
-                    if (isNew) {
-                        session.persist(ts);
-                    } else {
-                        session.merge(ts);
-                    }
+                    if (isNew) session.persist(dt);
+                    else session.merge(dt);
 
                     if (i % 50 == 0 && i > 0) {
                         session.flush();
                         session.clear();
                     }
-
                 } catch (Exception e) {
                     session.getTransaction().rollback();
                     result.addError(i + 1, "Hibernate error: " + e.getMessage());
