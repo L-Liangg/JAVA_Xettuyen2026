@@ -57,6 +57,10 @@ public class DiemThiDgnlVsatService {
         return repository.findByCccd(cccd.trim());
     }
 
+    public List<DiemThiDgnlVsat> getAllByCccd(String cccd) {
+        return repository.findAllByCccd(cccd);
+    }
+
     public DiemThiDgnlVsat findByDvKeys(String dvKeys) {
         if (dvKeys == null || dvKeys.isBlank()) return null;
         return repository.findByDvKeys(dvKeys);

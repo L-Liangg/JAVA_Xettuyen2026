@@ -36,22 +36,18 @@ public class NguyenVongPanel extends JPanel {
     }
 
     private void initUI() {
-        // ===== PANEL CHA (DỌC) =====
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ NGUYỆN VỌNG");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 14);
         cccdField.setPlaceholderColor(Color.GRAY);
@@ -63,32 +59,40 @@ public class NguyenVongPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
-        JButton btnAdd    = new JButton("Thêm mới");
-        JButton btnEdit   = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtCccdSearch.addActionListener(e -> search());
         txtManganhSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("CCCD:"));
+        searchPanel.add(txtCccdSearch);
+        searchPanel.add(new JLabel("Mã ngành:"));
+        searchPanel.add(txtManganhSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnEdit   = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
+
         btnAdd.addActionListener(e -> addNguyenVong());
         btnEdit.addActionListener(e -> updateNguyenVong());
         btnDelete.addActionListener(e -> deleteNguyenVong());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("CCCD:"));
-        rightPanel.add(txtCccdSearch);
-        rightPanel.add(new JLabel("Mã ngành:"));
-        rightPanel.add(txtManganhSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 

@@ -71,4 +71,8 @@ public class NganhService {
         if (nganh == null) return;
         repository.delete(nganh);
     }
+
+    public void updateSlNguyenVong() {
+        repository.updateSlNguyenVong();
+    }
 }

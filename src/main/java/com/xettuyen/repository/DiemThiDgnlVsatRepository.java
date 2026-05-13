@@ -87,4 +87,12 @@ public class DiemThiDgnlVsatRepository extends BaseRepository<DiemThiDgnlVsat> {
                     .uniqueResult();
         }
     }
+
+    public List<DiemThiDgnlVsat> findAllByCccd(String cccd) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery("FROM DiemThiDgnlVsat d WHERE d.cccd = :cccd", DiemThiDgnlVsat.class)
+                    .setParameter("cccd", cccd)
+                    .list();
+        }
+    }
 }

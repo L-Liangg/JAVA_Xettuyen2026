@@ -40,22 +40,18 @@ public class BangQuyDoiPanel extends JPanel {
     }
 
     private void initUI() {
-        // Panel cha (dọc)
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ BẢNG QUY ĐỔI");
         title.setFont(new Font("Arial", Font.BOLD, 16));
-        title.setAlignmentX(Component.LEFT_ALIGNMENT); // canh trái
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách giữa title và controls
-        topPanel.add(Box.createVerticalStrut(8));
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField phuongthucField = new PlaceholderTextField("Phương thức", 13);
         phuongthucField.setPlaceholderColor(Color.GRAY);
@@ -67,29 +63,37 @@ public class BangQuyDoiPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
-        JButton btnAdd    = new JButton("Thêm mới");
-        JButton btnEdit   = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtPhuongthucSearch.addActionListener(e -> search());
         txtTohopSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("Phương thức:"));
+        searchPanel.add(txtPhuongthucSearch);
+        searchPanel.add(new JLabel("Tổ hợp:"));
+        searchPanel.add(txtTohopSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnEdit   = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+
         btnAdd.addActionListener(e -> addBangQuyDoi());
         btnEdit.addActionListener(e -> updateBangQuyDoi());
         btnDelete.addActionListener(e -> deleteBangQuyDoi());
 
-        rightPanel.add(new JLabel("Phương thức:"));
-        rightPanel.add(txtPhuongthucSearch);
-        rightPanel.add(new JLabel("Tổ hợp:"));
-        rightPanel.add(txtTohopSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 

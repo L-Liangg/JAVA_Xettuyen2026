@@ -43,10 +43,11 @@ public class DiemThiDgnlVsatPanel extends JPanel {
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
-        topPanel.add(Box.createVerticalStrut(8));
 
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 14);
         cccdField.setPlaceholderColor(Color.GRAY);
@@ -58,32 +59,40 @@ public class DiemThiDgnlVsatPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset = new JButton("Làm mới");
-        JButton btnAdd = new JButton("Thêm mới");
-        JButton btnEdit = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtCccdSearch.addActionListener(e -> search());
         txtMaMonSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("CCCD:"));
+        searchPanel.add(txtCccdSearch);
+        searchPanel.add(new JLabel("Mã môn:"));
+        searchPanel.add(txtMaMonSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnEdit = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
+
         btnAdd.addActionListener(e -> addRecord());
         btnEdit.addActionListener(e -> updateRecord());
         btnDelete.addActionListener(e -> deleteRecord());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("CCCD:"));
-        rightPanel.add(txtCccdSearch);
-        rightPanel.add(new JLabel("Mã môn:"));
-        rightPanel.add(txtMaMonSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
         add(topPanel, BorderLayout.NORTH);
 
         tableModel = new DefaultTableModel(TableHeaders.DIEM_THI_DGNL_VSAT, 0) {

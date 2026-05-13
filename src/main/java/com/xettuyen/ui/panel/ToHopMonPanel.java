@@ -38,18 +38,17 @@ public class ToHopMonPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
+// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ TỔ HỢP MÔN");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+// ===== PANEL SEARCH + BUTTON =====
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL SEARCH + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField matohopField = new PlaceholderTextField("Mã tổ hợp", 15);
         matohopField.setPlaceholderColor(Color.GRAY);
@@ -57,29 +56,37 @@ public class ToHopMonPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset = new JButton("Làm mới");
+
+        btnSearch.addActionListener(e -> search());
+        btnReset.addActionListener(e -> reset());
+        txtMatohopSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("Mã tổ hợp:"));
+        searchPanel.add(txtMatohopSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
         JButton btnAdd = new JButton("Thêm mới");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import Excel");
 
-        btnSearch.addActionListener(e -> search());
-        btnReset.addActionListener(e -> reset());
-        txtMatohopSearch.addActionListener(e -> search());
         btnAdd.addActionListener(e -> addToHopMon());
         btnEdit.addActionListener(e -> updateToHopMon());
         btnDelete.addActionListener(e -> deleteToHopMon());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("Mã tổ hợp:"));
-        rightPanel.add(txtMatohopSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
