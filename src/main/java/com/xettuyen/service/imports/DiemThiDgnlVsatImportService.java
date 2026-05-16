@@ -1,26 +1,24 @@
 package com.xettuyen.service.imports;
 
 import com.xettuyen.config.HibernateUtil;
-import com.xettuyen.entity.DiemThi;
+import com.xettuyen.entity.DiemThiDgnlVsat;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import org.apache.commons.math3.util.Pair;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Session;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
-<<<<<<< HEAD
-import java.text.Normalizer;
-=======
-
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
 import java.util.*;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
-public class DiemThiImportService {
+public class DiemThiDgnlVsatImportService {
 
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
@@ -33,7 +31,7 @@ public class DiemThiImportService {
             session.beginTransaction();
 
             Map<String, Integer> existingMap = new HashMap<>();
-            session.createQuery("SELECT cccd, iddiemthi FROM DiemThi", Object[].class)
+            session.createQuery("SELECT dv_keys, id FROM DiemThiDgnlVsat", Object[].class)
                     .list()
                     .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
@@ -44,25 +42,19 @@ public class DiemThiImportService {
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
-<<<<<<< HEAD
-                if (val != null) colIndex.put(normHeader(val), cell.getColumnIndex());
-            }
-
-            if (!colIndex.containsKey(normHeader("cccd"))) {
-=======
-
                 if (val != null) colIndex.put(val.toLowerCase().trim(), cell.getColumnIndex());
             }
 
-            if (!colIndex.containsKey("cccd")) {
-
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
-                result.addError(0, "File thiếu cột khóa 'CCCD'");
+            if (!colIndex.containsKey("cccd")
+                    || !colIndex.containsKey("mã môn thi")
+                    || !colIndex.containsKey("mã đợt thi")
+                    || !colIndex.containsKey("đợt thi")) {
+                result.addError(0, "File thiếu cột khóa 'CCCD', 'Mã môn thi','Đợt thi' hoặc 'Mã đợt thi'");
                 session.getTransaction().rollback();
                 return result;
             }
 
-            ArrayList<Pair<DiemThi, Boolean>> validEntries = new ArrayList<>();
+            ArrayList<Pair<DiemThiDgnlVsat, Boolean>> validEntries = new ArrayList<>();
             Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
@@ -80,46 +72,59 @@ public class DiemThiImportService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-<<<<<<< HEAD
-                String cccd = getCellValue(row.getCell(colIndex.get(normHeader("cccd"))));
-=======
                 String cccd = getCellValue(row.getCell(colIndex.get("cccd")));
-
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                 if (cccd == null || cccd.isBlank()) {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
                         String v = getCellValue(cell);
-                        if (v != null && !v.isBlank()) { isEmptyRow = false; break; }
+                        if (v != null && !v.isBlank()) {
+                            isEmptyRow = false;
+                            break;
+                        }
                     }
                     if (isEmptyRow) continue;
                     result.addError(i + 1, "Thiếu CCCD");
                     continue;
                 }
 
-                if (seenInFile.contains(cccd)) {
-                    result.addError(i + 1, "Trùng CCCD '" + cccd + "' trong file");
+                String maMon = getCellValue(row.getCell(colIndex.get("mã môn thi")));
+                if (maMon == null || maMon.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã môn thi");
                     continue;
                 }
-                seenInFile.add(cccd);
 
-                DiemThi dt = new DiemThi();
+                String maDotThi = getCellValue(row.getCell(colIndex.get("mã đợt thi")));
+                if (maDotThi == null || maDotThi.isBlank()) {
+                    result.addError(i + 1, "Thiếu mã đợt thi");
+                    continue;
+                }
+
+                String dotThi = getCellValue(row.getCell(colIndex.get("đợt thi")));
+                if (dotThi == null || dotThi.isBlank()) { result.addError(i + 1, "Thiếu đợt thi"); continue; }
+
+                String dvKeys = cccd + "_" + maMon + "_" + maDotThi + "_" + dotThi;
+
+                if (seenInFile.contains(dvKeys)) {
+                    result.addError(i + 1, "Trùng khóa '" + dvKeys + "' trong file");
+                    continue;
+                }
+                seenInFile.add(dvKeys);
+
+                DiemThiDgnlVsat dt = new DiemThiDgnlVsat();
                 boolean isNew;
                 dt.setCccd(cccd);
-                if (existingMap.containsKey(cccd)) {
-                    dt.setIddiemthi(existingMap.get(cccd));
+                dt.setMa_mon(maMon);
+                dt.setMa_dot_thi(maDotThi);
+                dt.setDv_keys(dvKeys);
+                if (existingMap.containsKey(dvKeys)) {
+                    dt.setId(existingMap.get(dvKeys));
                     isNew = false;
                 } else {
                     isNew = true;
                 }
 
-                for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI.entrySet()) {
-<<<<<<< HEAD
-                    String excelCol = normHeader(entry.getKey());
-=======
+                for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI_DGNL_VSAT.entrySet()) {
                     String excelCol = entry.getKey();
-
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                     String fieldName = entry.getValue();
                     if (!colIndex.containsKey(excelCol)) continue;
 
@@ -127,22 +132,14 @@ public class DiemThiImportService {
                     if (val == null) continue;
 
                     switch (fieldName) {
-                        case "sobaodanh" -> dt.setSobaodanh(val);
-                        case "TO"     -> dt.setTO(new BigDecimal(val));
-                        case "VA"     -> dt.setVA(new BigDecimal(val));
-                        case "LI"     -> dt.setLI(new BigDecimal(val));
-                        case "HO"     -> dt.setHO(new BigDecimal(val));
-                        case "SI"     -> dt.setSI(new BigDecimal(val));
-                        case "SU"     -> dt.setSU(new BigDecimal(val));
-                        case "DI"     -> dt.setDI(new BigDecimal(val));
-                        case "KTPL"   -> dt.setKTPL(new BigDecimal(val));
-                        case "TI"     -> dt.setTI(new BigDecimal(val));
-                        case "CNCN"   -> dt.setCNCN(new BigDecimal(val));
-                        case "CNNN"   -> dt.setCNNN(new BigDecimal(val));
-                        case "N1_THI" -> dt.setN1_THI(new BigDecimal(val));
-                        case "NK1"    -> dt.setNK1(new BigDecimal(val));
-                        case "NK2"    -> dt.setNK2(new BigDecimal(val));
-                        case "NL1"    -> dt.setNL1(new BigDecimal(val));
+                        case "dot_thi" -> dt.setDot_thi(val);
+                        case "ngay_thi" -> dt.setNgay_thi(val);
+                        case "nam" -> dt.setNam(Integer.parseInt(val));
+                        case "ten_mon" -> dt.setTen_mon(val);
+                        case "diem" -> dt.setDiem(new BigDecimal(val));
+                        case "thang_diem" -> dt.setThang_diem(val);
+                        case "ma_dvtctdl" -> dt.setMa_dvtctdl(val);
+                        case "ten_dvtctdl" -> dt.setTen_dvtctdl(val);
                     }
                 }
 
@@ -168,7 +165,7 @@ public class DiemThiImportService {
                 int percent = (int) ((double) (i + 1) / validEntriesCount * 100);
                 dialog.updateProgress(percent, "Đang lưu dữ liệu " + (i + 1) + " / " + validEntriesCount);
 
-                DiemThi dt = validEntries.get(i).getFirst();
+                DiemThiDgnlVsat dt = validEntries.get(i).getFirst();
                 boolean isNew = validEntries.get(i).getSecond();
 
                 try {
@@ -193,12 +190,5 @@ public class DiemThiImportService {
         }
 
         return result;
-    }
-
-    private static String normHeader(String value) {
-        if (value == null) return "";
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized.toLowerCase().trim().replaceAll("\\s+", " ");
     }
 }

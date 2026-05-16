@@ -3,9 +3,10 @@ package com.xettuyen.ui.util;
 public class TableHeaders {
 
     public static final String[] BANG_QUY_DOI = {
+            "Mã quy đổi",
             "Phương thức", "Tổ hợp", "Môn",
             "Điểm A", "Điểm B", "Điểm C", "Điểm D",
-            "Mã quy đổi", "Phân vị"
+            "Phân vị"
     };
 
     public static final String[] DIEM_CONG = {
@@ -18,6 +19,12 @@ public class TableHeaders {
             "Toán", "Lí", "Hóa", "Sinh", "Sử", "Địa", "Văn",
             "N1 thi", "N1 CC", "CNCN", "CNNN", "Tin", "KTPL",
             "NL1", "NK1", "NK2"
+    };
+
+    public static final String[] DIEM_THI_DGNL_VSAT = {
+            "CCCD", "Đợt thi", "Mã đợt thi", "Ngày thi", "Năm thi",
+            "Mã môn thi", "Tên môn thi", "Điểm", "Thang điểm",
+            "Mã DVTCTDL", "Tên DVTCTDL"
     };
 
     public static final String[] NGANH = {
@@ -42,7 +49,11 @@ public class TableHeaders {
 
     public static final String[] THI_SINH = {
             "CCCD", "Số báo danh", "Họ", "Tên", "Ngày sinh",
+<<<<<<< HEAD
             "Điện thoại","Mật khẩu" ,"Giới tính", "Email", "Nơi sinh",
+=======
+            "Điện thoại", "Giới tính", "Email", "Mật khẩu", "Nơi sinh",
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
             "Ngày cập nhật", "Đối tượng", "Khu vực"
     };
 

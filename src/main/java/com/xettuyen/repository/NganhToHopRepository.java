@@ -7,6 +7,12 @@ import org.hibernate.query.Query;
 
 import java.util.List;
 
+import com.xettuyen.config.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.query.Query;
+
+import java.util.List;
+
 public class NganhToHopRepository extends BaseRepository<NganhToHop> {
 
     public NganhToHopRepository() {

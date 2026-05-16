@@ -6,6 +6,7 @@ import com.xettuyen.service.imports.DiemCongImportService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
+
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
 
@@ -13,9 +14,11 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
+
 
 public class DiemCongPanel extends JPanel {
 
@@ -24,6 +27,7 @@ public class DiemCongPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
+
     private JTextField txtCccdSearch;
     private JTextField txtManganhSearch;
 
@@ -35,22 +39,18 @@ public class DiemCongPanel extends JPanel {
     }
 
     private void initUI() {
-        // Panel cha (xếp dọc)
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ ĐIỂM CỘNG");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 14);
         cccdField.setPlaceholderColor(Color.GRAY);
@@ -62,32 +62,40 @@ public class DiemCongPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
-        JButton btnAdd    = new JButton("Thêm mới");
-        JButton btnEdit   = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtCccdSearch.addActionListener(e -> search());
         txtManganhSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("CCCD:"));
+        searchPanel.add(txtCccdSearch);
+        searchPanel.add(new JLabel("Mã ngành:"));
+        searchPanel.add(txtManganhSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnEdit   = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
+
         btnAdd.addActionListener(e -> addDiemCong());
         btnEdit.addActionListener(e -> updateDiemCong());
         btnDelete.addActionListener(e -> deleteDiemCong());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("CCCD:"));
-        rightPanel.add(txtCccdSearch);
-        rightPanel.add(new JLabel("Mã ngành:"));
-        rightPanel.add(txtManganhSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -102,7 +110,6 @@ public class DiemCongPanel extends JPanel {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // ===== PAGINATION =====
         paginationPanel = new PaginationPanel();
         paginationPanel.setOnPageChange(() -> {
             currentPage = paginationPanel.getCurrentPage();
@@ -125,7 +132,7 @@ public class DiemCongPanel extends JPanel {
             tableModel.addRow(new Object[]{
                     dc.getTs_cccd(), dc.getManganh(), dc.getMatohop(),
                     dc.getPhuongthuc(), dc.getDiemCC(),
-                    dc.getDiemUtxt(), dc.getDiemTong(), dc.getGhichu()
+                    dc.getDiemUtxt(), dc.getDiemTong(), dc.getGhichu(), dc.getDc_keys()
             });
         }
     }
@@ -233,23 +240,36 @@ public class DiemCongPanel extends JPanel {
 
     private String getSelectedDcKeys() {
         int viewRow = table.getSelectedRow();
+
         if (viewRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 dòng trong bảng.",
-                    "Chưa chọn dòng", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn 1 dòng trong bảng.",
+                    "Chưa chọn dòng",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return null;
         }
+
         int modelRow = table.convertRowIndexToModel(viewRow);
-        String cccd      = Objects.toString(tableModel.getValueAt(modelRow, 0), "").trim();
-        String manganh   = Objects.toString(tableModel.getValueAt(modelRow, 1), "").trim();
-        String matohop   = Objects.toString(tableModel.getValueAt(modelRow, 2), "").trim();
-        String phuongthuc= Objects.toString(tableModel.getValueAt(modelRow, 3), "").trim();
-        if (cccd.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Dòng đã chọn không có CCCD hợp lệ.",
-                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+
+        // Cột cuối cùng trong table là dc_keys
+        String dcKeys = Objects.toString(
+                tableModel.getValueAt(modelRow, 8),
+                ""
+        ).trim();
+
+        if (dcKeys.isBlank()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không tìm thấy dc_keys của dòng đã chọn.",
+                    "Dữ liệu không hợp lệ",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return null;
         }
-        // dc_keys = cccd_manganh_matohop_phuongthuc (theo convention của dự án)
-        return cccd + "_" + manganh + "_" + matohop + "_" + phuongthuc;
+
+        return dcKeys;
     }
 
     private DiemCong showForm(DiemCong existing) {

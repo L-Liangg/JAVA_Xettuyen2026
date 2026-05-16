@@ -7,15 +7,19 @@ import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
+
 import com.xettuyen.ui.util.TableHeaders;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+
 import java.io.File;
-import java.math.BigDecimal;
 import java.util.List;
+
+import java.math.BigDecimal;
 import java.util.Objects;
+
 
 public class BangQuyDoiPanel extends JPanel {
 
@@ -24,6 +28,7 @@ public class BangQuyDoiPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
+
     private JTextField txtPhuongthucSearch;
     private JTextField txtTohopSearch;
 
@@ -35,22 +40,18 @@ public class BangQuyDoiPanel extends JPanel {
     }
 
     private void initUI() {
-        // Panel cha (dọc)
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ BẢNG QUY ĐỔI");
         title.setFont(new Font("Arial", Font.BOLD, 16));
-        title.setAlignmentX(Component.LEFT_ALIGNMENT); // canh trái
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách giữa title và controls
-        topPanel.add(Box.createVerticalStrut(8));
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField phuongthucField = new PlaceholderTextField("Phương thức", 13);
         phuongthucField.setPlaceholderColor(Color.GRAY);
@@ -62,36 +63,42 @@ public class BangQuyDoiPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
-        JButton btnAdd    = new JButton("Thêm mới");
-        JButton btnEdit   = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtPhuongthucSearch.addActionListener(e -> search());
         txtTohopSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("Phương thức:"));
+        searchPanel.add(txtPhuongthucSearch);
+        searchPanel.add(new JLabel("Tổ hợp:"));
+        searchPanel.add(txtTohopSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnEdit   = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+
         btnAdd.addActionListener(e -> addBangQuyDoi());
         btnEdit.addActionListener(e -> updateBangQuyDoi());
         btnDelete.addActionListener(e -> deleteBangQuyDoi());
-        btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("Phương thức:"));
-        rightPanel.add(txtPhuongthucSearch);
-        rightPanel.add(new JLabel("Tổ hợp:"));
-        rightPanel.add(txtTohopSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
         // ===== TABLE =====
+
         tableModel = new DefaultTableModel(TableHeaders.BANG_QUY_DOI, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -111,6 +118,34 @@ public class BangQuyDoiPanel extends JPanel {
         add(paginationPanel, BorderLayout.SOUTH);
     }
 
+    private void importExcel() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(
+                new javax.swing.filechooser.FileNameExtensionFilter("Excel files", "xlsx"));
+
+        if (fileChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        File file = fileChooser.getSelectedFile();
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+
+        ImportProgressDialog progressDialog = new ImportProgressDialog(parent);
+        ImportResult result = progressDialog.startImport(
+                () -> new BangQuyDoiImportService().importFromExcel(file, progressDialog)
+        );
+
+        if (result.hasErrors()) {
+            JTextArea textArea = new JTextArea(String.join("\n", result.getErrors()));
+            textArea.setEditable(false);
+            textArea.setFont(new Font("Arial", Font.PLAIN, 12));
+            JScrollPane scroll = new JScrollPane(textArea);
+            scroll.setPreferredSize(new Dimension(400, 200));
+            JOptionPane.showMessageDialog(this, scroll,
+                    "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
+        }
+
+        loadData();
+    }
+
     private void loadData() {
         String phuongthuc = txtPhuongthucSearch != null ? txtPhuongthucSearch.getText().trim() : "";
         String tohop = txtTohopSearch != null ? txtTohopSearch.getText().trim() : "";
@@ -118,14 +153,16 @@ public class BangQuyDoiPanel extends JPanel {
         if (currentPage > totalPages) currentPage = totalPages;
 
         List<BangQuyDoi> list = service.searchAnd(phuongthuc, tohop, currentPage);
+
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);
         for (BangQuyDoi b : list) {
             tableModel.addRow(new Object[]{
+                    b.getD_maquydoi(),
                     b.getD_phuongthuc(), b.getD_tohop(), b.getD_mon(),
                     b.getD_diema(), b.getD_diemb(), b.getD_diemc(),
-                    b.getD_diemd(), b.getD_maquydoi(), b.getD_phanvi()
+                    b.getD_diemd(),  b.getD_phanvi()
             });
         }
     }
@@ -229,34 +266,6 @@ public class BangQuyDoiPanel extends JPanel {
                     "Có lỗi khi xóa bảng quy đổi:\n" + ex.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void importExcel() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(
-                new javax.swing.filechooser.FileNameExtensionFilter("Excel files", "xlsx"));
-
-        if (fileChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        File file = fileChooser.getSelectedFile();
-        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-
-        ImportProgressDialog progressDialog = new ImportProgressDialog(parent);
-        ImportResult result = progressDialog.startImport(
-                () -> new BangQuyDoiImportService().importFromExcel(file, progressDialog)
-        );
-
-        if (result.hasErrors()) {
-            JTextArea textArea = new JTextArea(String.join("\n", result.getErrors()));
-            textArea.setEditable(false);
-            textArea.setFont(new Font("Arial", Font.PLAIN, 12));
-            JScrollPane scroll = new JScrollPane(textArea);
-            scroll.setPreferredSize(new Dimension(400, 200));
-            JOptionPane.showMessageDialog(this, scroll,
-                    "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
-        }
-
-        loadData();
     }
 
     private String getSelectedMaquydoi() {

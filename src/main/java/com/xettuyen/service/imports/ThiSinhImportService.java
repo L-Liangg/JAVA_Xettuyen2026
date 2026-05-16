@@ -94,8 +94,15 @@ public class ThiSinhImportService {
 
                 boolean isNew;
                 ts.setCccd(cccd);
+<<<<<<< HEAD
                 if (existingIdByCccd.containsKey(cccd)) {
                     ts.setIdthisinh(existingIdByCccd.get(cccd));
+=======
+
+                if (existingMap.containsKey(cccd)) {
+                    ts.setIdthisinh(existingMap.get(cccd));
+
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                     isNew = false;
                 } else {
                     isNew = true;
@@ -118,6 +125,7 @@ public class ThiSinhImportService {
                         case "password" -> ts.setPassword(val);
                         case "gioi_tinh" -> ts.setGioi_tinh(val);
                         case "email" -> ts.setEmail(val);
+                        case "mat_khau" -> ts.setPassword(val);
                         case "noi_sinh" -> ts.setNoi_sinh(val);
                         case "doi_tuong" -> ts.setDoi_tuong(val);
                         case "khu_vuc" -> ts.setKhu_vuc(val);

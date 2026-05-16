@@ -28,6 +28,7 @@ public class DiemThiPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
+
     private JTextField txtCccdSearch;
     private JTextField txtSbdSearch;
 
@@ -43,18 +44,17 @@ public class DiemThiPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
+// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ ĐIỂM THI");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+// ===== PANEL SEARCH + BUTTON =====
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 14);
         cccdField.setPlaceholderColor(Color.GRAY);
@@ -66,35 +66,43 @@ public class DiemThiPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset = new JButton("Làm mới");
+
+        btnSearch.addActionListener(e -> search());
+        btnReset.addActionListener(e -> reset());
+        txtCccdSearch.addActionListener(e -> search());
+        txtSbdSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("CCCD:"));
+        searchPanel.add(txtCccdSearch);
+        searchPanel.add(new JLabel("SBD:"));
+        searchPanel.add(txtSbdSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
         JButton btnAdd = new JButton("Thêm mới");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnStats = new JButton("Thống kê");
         JButton btnImport = new JButton("Import Excel");
 
-        btnSearch.addActionListener(e -> search());
-        btnReset.addActionListener(e -> reset());
-        txtCccdSearch.addActionListener(e -> search());
-        txtSbdSearch.addActionListener(e -> search());
         btnAdd.addActionListener(e -> addDiemThi());
         btnEdit.addActionListener(e -> updateDiemThi());
         btnDelete.addActionListener(e -> deleteDiemThi());
         btnStats.addActionListener(e -> showStatistics());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("CCCD:"));
-        rightPanel.add(txtCccdSearch);
-        rightPanel.add(new JLabel("SBD:"));
-        rightPanel.add(txtSbdSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnStats);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnStats);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -121,10 +129,11 @@ public class DiemThiPanel extends JPanel {
     private void loadData() {
         String cccd = txtCccdSearch != null ? txtCccdSearch.getText().trim() : "";
         String sbd = txtSbdSearch != null ? txtSbdSearch.getText().trim() : "";
-        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, sbd));
+        int totalPages = service.getTotalPagesAnd(cccd, sbd);
         if (currentPage > totalPages) currentPage = totalPages;
 
         List<DiemThi> list = service.searchAnd(cccd, sbd, currentPage);
+
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);

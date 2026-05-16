@@ -67,8 +67,13 @@ public class DiemCongRepository extends BaseRepository<DiemCong> {
 
     public DiemCong findByDcKeys(String dcKeys) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("FROM DiemCong d WHERE d.dc_keys = :dcKeys", DiemCong.class)
-                    .setParameter("dcKeys", dcKeys)
+
+            System.out.println("Find dc_keys = [" + dcKeys + "]");
+
+            return session.createQuery(
+                            "FROM DiemCong d WHERE d.dc_keys = :dcKeys",
+                            DiemCong.class)
+                    .setParameter("dcKeys", dcKeys.trim())
                     .uniqueResult();
         }
     }

@@ -17,11 +17,14 @@ import java.util.Locale;
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
 public class NganhToHopImportService {
+<<<<<<< HEAD
 
     private static String normCode(String s) {
         return s == null ? "" : s.trim().toUpperCase(Locale.ROOT);
     }
 
+=======
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
 

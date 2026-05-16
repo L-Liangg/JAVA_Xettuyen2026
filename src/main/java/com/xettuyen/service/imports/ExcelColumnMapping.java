@@ -15,6 +15,7 @@ public class ExcelColumnMapping {
         put("mật khẩu", "password");
         put("giới tính", "gioi_tinh");
         put("email", "email");
+        put("mật khẩu", "mat_khau");
         put("nơi sinh", "noi_sinh");
         put("đối tượng", "doi_tuong");
         put("khu vực", "khu_vuc");
@@ -83,6 +84,20 @@ public class ExcelColumnMapping {
         put("nl1", "NL1");
     }};
 
+    public static final Map<String, String> DIEM_THI_DGNL_VSAT = new LinkedHashMap<>() {{
+        put("cccd", "cccd");
+        put("đợt thi", "dot_thi");
+        put("mã đợt thi", "ma_dot_thi");
+        put("ngày thi", "ngay_thi");
+        put("năm thi", "nam");
+        put("mã môn thi", "ma_mon");
+        put("tên môn thi", "ten_mon");
+        put("điểm", "diem");
+        put("thang điểm", "thang_diem");
+        put("mã dvtctdl", "ma_dvtctdl");
+        put("tên dvtctdl", "ten_dvtctdl");
+    }};
+
     public static final Map<String, String> NGUYEN_VONG = new LinkedHashMap<>() {{
         put("cccd", "nn_cccd");
         put("mã ngành", "nv_manganh");
@@ -102,6 +117,10 @@ public class ExcelColumnMapping {
     }};
 
     public static final Map<String, String> BANG_QUY_DOI = new LinkedHashMap<>() {{
+<<<<<<< HEAD
+=======
+        put("mã quy đổi", "d_maquydoi");
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
         put("phương thức", "d_phuongthuc");
         put("tổ hợp", "d_tohop");
         put("môn", "d_mon");
@@ -109,7 +128,13 @@ public class ExcelColumnMapping {
         put("điểm b", "d_diemb");
         put("điểm c", "d_diemc");
         put("điểm d", "d_diemd");
+<<<<<<< HEAD
         put("mã quy đổi", "d_maquydoi");
         put("phân vị", "d_phanvi");
     }};
 }
+=======
+        put("phân vị", "d_phanvi");
+    }};
+}
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0

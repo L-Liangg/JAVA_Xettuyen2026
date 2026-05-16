@@ -8,13 +8,14 @@ import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
+
 import java.math.BigDecimal;
 import java.util.Objects;
+
 import java.util.List;
 
 public class NganhPanel extends JPanel {
@@ -24,6 +25,7 @@ public class NganhPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
+
     private JTextField txtManganhSearch;
     private JTextField txtTennganhSearch;
 
@@ -39,18 +41,17 @@ public class NganhPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
+// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ NGÀNH TUYỂN SINH");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+// ===== PANEL SEARCH + BUTTON =====
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        rightPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField manganhField = new PlaceholderTextField("Mã ngành", 12);
         manganhField.setPlaceholderColor(Color.GRAY);
@@ -62,32 +63,40 @@ public class NganhPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset = new JButton("Làm mới");
-        JButton btnAdd = new JButton("Thêm mới");
-        JButton btnEdit = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtManganhSearch.addActionListener(e -> search());
         txtTennganhSearch.addActionListener(e -> search());
+
+        searchPanel.add(new JLabel("Mã ngành:"));
+        searchPanel.add(txtManganhSearch);
+        searchPanel.add(new JLabel("Tên ngành:"));
+        searchPanel.add(txtTennganhSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnEdit = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
+
         btnAdd.addActionListener(e -> addNganh());
         btnEdit.addActionListener(e -> updateNganh());
         btnDelete.addActionListener(e -> deleteNganh());
         btnImport.addActionListener(e -> importExcel());
 
-        rightPanel.add(new JLabel("Mã ngành:"));
-        rightPanel.add(txtManganhSearch);
-        rightPanel.add(new JLabel("Tên ngành:"));
-        rightPanel.add(txtTennganhSearch);
-        rightPanel.add(btnSearch);
-        rightPanel.add(btnReset);
-        rightPanel.add(btnAdd);
-        rightPanel.add(btnEdit);
-        rightPanel.add(btnDelete);
-        rightPanel.add(btnImport);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(rightPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -140,12 +149,14 @@ public class NganhPanel extends JPanel {
     }
 
     private void loadData() {
+        service.updateSlNguyenVong();
         String manganh = txtManganhSearch != null ? txtManganhSearch.getText().trim() : "";
         String tennganh = txtTennganhSearch != null ? txtTennganhSearch.getText().trim() : "";
-        int totalPages = Math.max(1, service.getTotalPagesAnd(manganh, tennganh));
+        int totalPages = service.getTotalPagesAnd(manganh, tennganh);
         if (currentPage > totalPages) currentPage = totalPages;
 
         List<Nganh> list = service.searchAnd(manganh, tennganh, currentPage);
+
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);
@@ -303,6 +314,15 @@ public class NganhPanel extends JPanel {
         JTextField txtSlVsat = new JTextField(20);
         JTextField txtSlThpt = new JTextField(20);
 
+        txtSlXtt.setEditable(false);
+        txtSlXtt.setBackground(Color.LIGHT_GRAY);
+        txtSlDgnl.setEditable(false);
+        txtSlDgnl.setBackground(Color.LIGHT_GRAY);
+        txtSlVsat.setEditable(false);
+        txtSlVsat.setBackground(Color.LIGHT_GRAY);
+        txtSlThpt.setEditable(false);
+        txtSlThpt.setBackground(Color.LIGHT_GRAY);
+
         if (isEdit) {
             txtMa.setText(existing.getManganh());
             txtTen.setText(existing.getTennganh());
@@ -317,39 +337,25 @@ public class NganhPanel extends JPanel {
             txtSlXtt.setText(existing.getSl_xtt() == null ? "" : String.valueOf(existing.getSl_xtt()));
             txtSlDgnl.setText(existing.getSl_dgnl() == null ? "" : String.valueOf(existing.getSl_dgnl()));
             txtSlVsat.setText(existing.getSl_vsat() == null ? "" : String.valueOf(existing.getSl_vsat()));
-            txtSlThpt.setText(existing.getSl_thpt());
+            txtSlThpt.setText(existing.getSl_thpt() == null ? "" : String.valueOf(existing.getSl_thpt()));
             txtMa.setEditable(false);
         }
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
-        form.add(new JLabel("Mã ngành:"));
-        form.add(txtMa);
-        form.add(new JLabel("Tên ngành:"));
-        form.add(txtTen);
-        form.add(new JLabel("Tổ hợp gốc:"));
-        form.add(txtToHopGoc);
-        form.add(new JLabel("Chỉ tiêu:"));
-        form.add(txtChiTieu);
-        form.add(new JLabel("Điểm sàn:"));
-        form.add(txtDiemSan);
-        form.add(new JLabel("Điểm trúng tuyển:"));
-        form.add(txtDiemTrungTuyen);
-        form.add(new JLabel("Tuyển thẳng (0/1):"));
-        form.add(txtTuyenThang);
-        form.add(new JLabel("ĐGNL (0/1):"));
-        form.add(txtDgnl);
-        form.add(new JLabel("THPT (0/1):"));
-        form.add(txtThpt);
-        form.add(new JLabel("V-SAT (0/1):"));
-        form.add(txtVsat);
-        form.add(new JLabel("SL xét tuyển thẳng:"));
-        form.add(txtSlXtt);
-        form.add(new JLabel("SL ĐGNL:"));
-        form.add(txtSlDgnl);
-        form.add(new JLabel("SL V-SAT:"));
-        form.add(txtSlVsat);
-        form.add(new JLabel("SL THPT:"));
-        form.add(txtSlThpt);
+        form.add(new JLabel("Mã ngành:")); form.add(txtMa);
+        form.add(new JLabel("Tên ngành:")); form.add(txtTen);
+        form.add(new JLabel("Tổ hợp gốc:")); form.add(txtToHopGoc);
+        form.add(new JLabel("Chỉ tiêu:")); form.add(txtChiTieu);
+        form.add(new JLabel("Điểm sàn:")); form.add(txtDiemSan);
+        form.add(new JLabel("Điểm trúng tuyển:")); form.add(txtDiemTrungTuyen);
+        form.add(new JLabel("Tuyển thẳng (0/1):")); form.add(txtTuyenThang);
+        form.add(new JLabel("ĐGNL (0/1):")); form.add(txtDgnl);
+        form.add(new JLabel("THPT (0/1):")); form.add(txtThpt);
+        form.add(new JLabel("V-SAT (0/1):")); form.add(txtVsat);
+        form.add(new JLabel("SL xét tuyển thẳng:")); form.add(txtSlXtt);
+        form.add(new JLabel("SL ĐGNL:")); form.add(txtSlDgnl);
+        form.add(new JLabel("SL V-SAT:")); form.add(txtSlVsat);
+        form.add(new JLabel("SL THPT:")); form.add(txtSlThpt);
 
         int option = JOptionPane.showConfirmDialog(this,
                 form,
@@ -379,7 +385,7 @@ public class NganhPanel extends JPanel {
         n.setSl_xtt(parseIntOrNull(txtSlXtt.getText()));
         n.setSl_dgnl(parseIntOrNull(txtSlDgnl.getText()));
         n.setSl_vsat(parseIntOrNull(txtSlVsat.getText()));
-        n.setSl_thpt(blankToNull(txtSlThpt.getText()));
+        n.setSl_thpt(parseIntOrNull(txtSlThpt.getText()));
         return n;
     }
 

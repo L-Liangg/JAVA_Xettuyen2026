@@ -11,6 +11,7 @@ import com.xettuyen.service.imports.NganhToHopImportService;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
+
 import com.xettuyen.ui.util.TableHeaders;
 
 import javax.swing.*;
@@ -25,12 +26,15 @@ import java.util.Objects;
 public class NganhToHopPanel extends JPanel {
 
     private final NganhToHopService service = new NganhToHopService();
+
     private final NganhService nganhService = new NganhService();
     private final ToHopMonService toHopMonService = new ToHopMonService();
+
     private JTable table;
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
+
     private JTextField txtManganhSearch;
     private JTextField txtMatohopSearch;
 
@@ -42,22 +46,22 @@ public class NganhToHopPanel extends JPanel {
     }
 
     private void initUI() {
+
         // ===== PANEL CHA (DỌC) =====
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
+// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ NGÀNH - TỔ HỢP");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+// ===== PANEL SEARCH + BUTTON =====
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL INPUT + BUTTON =====
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        btnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         PlaceholderTextField manganhField = new PlaceholderTextField("Mã ngành", 12);
         manganhField.setPlaceholderColor(Color.GRAY);
@@ -69,32 +73,40 @@ public class NganhToHopPanel extends JPanel {
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnRefresh = new JButton("Làm mới");
-        JButton btnAdd = new JButton("Thêm mới");
-        JButton btnEdit = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
 
         btnSearch.addActionListener(e -> search());
         btnRefresh.addActionListener(e -> reset());
         txtManganhSearch.addActionListener(e -> search());
         txtMatohopSearch.addActionListener(e -> search());
-        btnImport.addActionListener(e -> importExcel());
+
+        searchPanel.add(new JLabel("Mã ngành:"));
+        searchPanel.add(txtManganhSearch);
+        searchPanel.add(new JLabel("Mã tổ hợp:"));
+        searchPanel.add(txtMatohopSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnRefresh);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnEdit = new JButton("Sửa");
+        JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
+
         btnAdd.addActionListener(e -> addNganhToHop());
         btnEdit.addActionListener(e -> updateNganhToHop());
         btnDelete.addActionListener(e -> deleteNganhToHop());
+        btnImport.addActionListener(e -> importExcel());
 
-        btnPanel.add(new JLabel("Mã ngành:"));
-        btnPanel.add(txtManganhSearch);
-        btnPanel.add(new JLabel("Mã tổ hợp:"));
-        btnPanel.add(txtMatohopSearch);
-        btnPanel.add(btnSearch);
-        btnPanel.add(btnRefresh);
         btnPanel.add(btnAdd);
         btnPanel.add(btnEdit);
         btnPanel.add(btnDelete);
         btnPanel.add(btnImport);
 
-        topPanel.add(btnPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -109,7 +121,6 @@ public class NganhToHopPanel extends JPanel {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // ===== PAGINATION =====
         paginationPanel = new PaginationPanel();
         paginationPanel.setOnPageChange(() -> {
             currentPage = paginationPanel.getCurrentPage();
@@ -321,7 +332,7 @@ public class NganhToHopPanel extends JPanel {
         List<String> toHopCodes = new ArrayList<>();
         for (ToHopMon t : toHopList) {
             String code = Objects.toString(t.getMatohop(), "").trim();
-            // String display = code + " (" + t.getMon1() + "-" + t.getMon2() + "-" + t.getMon3() + ")";
+            String display = code + " (" + t.getMon1() + "-" + t.getMon2() + "-" + t.getMon3() + ")";
             cbToHop.addItem(code);
             toHopCodes.add(code);
         }

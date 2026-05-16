@@ -14,11 +14,15 @@ import org.hibernate.Session;
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
+<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+=======
+import java.util.*;
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
@@ -40,6 +44,7 @@ public class BangQuyDoiImportService {
                     .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
 
             Sheet sheet = workbook.getSheetAt(0);
+<<<<<<< HEAD
             int totalRows = Math.max(1, sheet.getLastRowNum());
 
             Row headerRow = sheet.getRow(0);
@@ -49,6 +54,11 @@ public class BangQuyDoiImportService {
                 return result;
             }
 
+=======
+            int totalRows = sheet.getLastRowNum();
+
+            Row headerRow = sheet.getRow(0);
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
@@ -65,6 +75,10 @@ public class BangQuyDoiImportService {
             Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                 if (dialog.isCancelled()) {
                     session.getTransaction().rollback();
                     result = new ImportResult();
@@ -83,10 +97,14 @@ public class BangQuyDoiImportService {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
                         String v = getCellValue(cell);
+<<<<<<< HEAD
                         if (v != null && !v.isBlank()) {
                             isEmptyRow = false;
                             break;
                         }
+=======
+                        if (v != null && !v.isBlank()) { isEmptyRow = false; break; }
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                     }
                     if (isEmptyRow) continue;
                     result.addError(i + 1, "Thiếu mã quy đổi");
@@ -99,11 +117,19 @@ public class BangQuyDoiImportService {
                 }
                 seenInFile.add(maQuyDoi);
 
+<<<<<<< HEAD
                 BangQuyDoi bangQuyDoi = new BangQuyDoi();
                 boolean isNew;
                 bangQuyDoi.setD_maquydoi(maQuyDoi);
                 if (existingMap.containsKey(maQuyDoi)) {
                     bangQuyDoi.setIdqd(existingMap.get(maQuyDoi));
+=======
+                BangQuyDoi bqd = new BangQuyDoi();
+                boolean isNew;
+                bqd.setD_maquydoi(maQuyDoi);
+                if (existingMap.containsKey(maQuyDoi)) {
+                    bqd.setIdqd(existingMap.get(maQuyDoi));
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                     isNew = false;
                 } else {
                     isNew = true;
@@ -112,6 +138,7 @@ public class BangQuyDoiImportService {
                 for (Map.Entry<String, String> entry : ExcelColumnMapping.BANG_QUY_DOI.entrySet()) {
                     String excelCol = entry.getKey();
                     String fieldName = entry.getValue();
+<<<<<<< HEAD
                     Integer index = colIndex.get(excelCol);
                     if (index == null) continue;
 
@@ -135,6 +162,26 @@ public class BangQuyDoiImportService {
                 }
 
                 validEntries.add(new Pair<>(bangQuyDoi, isNew));
+=======
+                    if (!colIndex.containsKey(excelCol)) continue;
+
+                    String val = getCellValue(row.getCell(colIndex.get(excelCol)));
+                    if (val == null) continue;
+
+                    switch (fieldName) {
+                        case "d_phuongthuc" -> bqd.setD_phuongthuc(val);
+                        case "d_tohop"      -> bqd.setD_tohop(val);
+                        case "d_mon"        -> bqd.setD_mon(val);
+                        case "d_diema"      -> bqd.setD_diema(new BigDecimal(val));
+                        case "d_diemb"      -> bqd.setD_diemb(new BigDecimal(val));
+                        case "d_diemc"      -> bqd.setD_diemc(new BigDecimal(val));
+                        case "d_diemd"      -> bqd.setD_diemd(new BigDecimal(val));
+                        case "d_phanvi"     -> bqd.setD_phanvi(val);
+                    }
+                }
+
+                validEntries.add(new Pair<>(bqd, isNew));
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
             }
 
             if (result.hasErrors()) {
@@ -145,6 +192,10 @@ public class BangQuyDoiImportService {
             int validEntriesCount = validEntries.size();
 
             for (int i = 0; i < validEntriesCount; i++) {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                 if (dialog.isCancelled()) {
                     session.getTransaction().rollback();
                     result = new ImportResult();
@@ -155,12 +206,21 @@ public class BangQuyDoiImportService {
                 int percent = (int) ((double) (i + 1) / validEntriesCount * 100);
                 dialog.updateProgress(percent, "Đang lưu dữ liệu " + (i + 1) + " / " + validEntriesCount);
 
+<<<<<<< HEAD
                 BangQuyDoi bangQuyDoi = validEntries.get(i).getFirst();
                 boolean isNew = validEntries.get(i).getSecond();
 
                 try {
                     if (isNew) session.persist(bangQuyDoi);
                     else session.merge(bangQuyDoi);
+=======
+                BangQuyDoi bqd = validEntries.get(i).getFirst();
+                boolean isNew = validEntries.get(i).getSecond();
+
+                try {
+                    if (isNew) session.persist(bqd);
+                    else session.merge(bqd);
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
 
                     if (i % 50 == 0 && i > 0) {
                         session.flush();
@@ -181,4 +241,8 @@ public class BangQuyDoiImportService {
 
         return result;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0

@@ -5,6 +5,8 @@ import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.service.imports.ThiSinhImportService;
 import com.xettuyen.service.impl.ThiSinhService;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
+import com.xettuyen.ui.dialog.ThiSinhDetailDialog;
+import com.xettuyen.ui.dialog.ThiSinhThongKeDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
@@ -12,6 +14,8 @@ import com.xettuyen.ui.util.TableHeaders;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.Objects;
 import java.util.List;
@@ -21,8 +25,9 @@ public class ThiSinhPanel extends JPanel {
     private final ThiSinhService service = new ThiSinhService();
     private JTable table;
     private DefaultTableModel tableModel;
-    private JTextField txtCccdSearch;
-    private JTextField txtSbdSearch;
+
+    private JTextField txtSearchKeyword;
+
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
 
@@ -34,63 +39,64 @@ public class ThiSinhPanel extends JPanel {
     }
 
     private void initUI() {
-        // ===== PANEL CHA (DỌC) =====
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ THÍ SINH");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);
 
-        // khoảng cách
-        topPanel.add(Box.createVerticalStrut(8));
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ===== PANEL SEARCH + BUTTON =====
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 15);
-        cccdField.setPlaceholderColor(Color.GRAY);
-        txtCccdSearch = cccdField;
-
-        PlaceholderTextField sbdField = new PlaceholderTextField("Số báo danh", 15);
-        sbdField.setPlaceholderColor(Color.GRAY);
-        txtSbdSearch = sbdField;
+        PlaceholderTextField searchField = new PlaceholderTextField("Họ tên, cccd, số báo danh", 20);
+        searchField.setPlaceholderColor(Color.GRAY);
+        txtSearchKeyword = searchField;
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset = new JButton("Làm mới");
+
+        btnSearch.addActionListener(e -> search());
+        btnReset.addActionListener(e -> reset());
+        txtSearchKeyword.addActionListener(e -> search());
+
+        searchPanel.add(txtSearchKeyword);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton btnStats = new JButton("Thống kê");
         JButton btnAdd = new JButton("Thêm mới");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import Excel");
 
-        btnSearch.addActionListener(e -> search());
-        btnReset.addActionListener(e -> reset());
-        txtCccdSearch.addActionListener(e -> search());
-        txtSbdSearch.addActionListener(e -> search());
+        btnStats.addActionListener(e -> {
+            JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+            new ThiSinhThongKeDialog(parent, service).setVisible(true);
+        });
         btnAdd.addActionListener(e -> addThiSinh());
         btnEdit.addActionListener(e -> updateThiSinh());
         btnDelete.addActionListener(e -> deleteThiSinh());
         btnImport.addActionListener(e -> importExcel());
 
-        searchPanel.add(new JLabel("CCCD:"));
-        searchPanel.add(txtCccdSearch);
-        searchPanel.add(new JLabel("SBD:"));
-        searchPanel.add(txtSbdSearch);
-        searchPanel.add(btnSearch);
-        searchPanel.add(btnReset);
-        searchPanel.add(btnAdd);
-        searchPanel.add(btnEdit);
-        searchPanel.add(btnDelete);
-        searchPanel.add(btnImport);
+        btnPanel.add(btnStats);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnEdit);
+        btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
-        topPanel.add(searchPanel);
+        actionPanel.add(searchPanel, BorderLayout.WEST);
+        actionPanel.add(btnPanel, BorderLayout.EAST);
+
+        topPanel.add(actionPanel);
 
         add(topPanel, BorderLayout.NORTH);
 
-        // ===== TABLE =====
         tableModel = new DefaultTableModel(TableHeaders.THI_SINH, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -99,9 +105,23 @@ public class ThiSinhPanel extends JPanel {
         table.setRowHeight(25);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    String cccd = getSelectedCccd();
+                    if (cccd == null) return;
+                    ThiSinh ts = service.findByCccd(cccd);
+                    if (ts == null) return;
+                    JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(ThiSinhPanel.this);
+                    new ThiSinhDetailDialog(parent, ts, service).setVisible(true);
+                }
+            }
+        });
+
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // ===== PAGINATION =====
         paginationPanel = new PaginationPanel();
         paginationPanel.setOnPageChange(() -> {
             currentPage = paginationPanel.getCurrentPage();
@@ -111,20 +131,21 @@ public class ThiSinhPanel extends JPanel {
     }
 
     private void loadData() {
-        String cccd = txtCccdSearch != null ? txtCccdSearch.getText().trim() : "";
-        String sbd = txtSbdSearch != null ? txtSbdSearch.getText().trim() : "";
-        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, sbd));
+        String keyword = txtSearchKeyword != null ? txtSearchKeyword.getText().trim() : "";
+
+        int totalPages = service.getTotalPages(keyword);
         if (currentPage > totalPages) currentPage = totalPages;
 
-        List<ThiSinh> list = service.searchAnd(cccd, sbd, currentPage);
+        List<ThiSinh> list = service.search(keyword, currentPage);
+
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);
         for (ThiSinh ts : list) {
             tableModel.addRow(new Object[]{
                     ts.getCccd(), ts.getSobaodanh(), ts.getHo(), ts.getTen(),
-                    ts.getNgay_sinh(), ts.getDien_thoai(), ts.getPassword(), ts.getGioi_tinh(),
-                    ts.getEmail(), ts.getNoi_sinh(), ts.getUpdated_at(),
+                    ts.getNgay_sinh(), ts.getDien_thoai(), ts.getGioi_tinh(),
+                    ts.getEmail(), ts.getPassword(), ts.getNoi_sinh(), ts.getUpdated_at(),
                     ts.getDoi_tuong(), ts.getKhu_vuc()
             });
         }
@@ -137,8 +158,7 @@ public class ThiSinhPanel extends JPanel {
     }
 
     private void reset() {
-        txtCccdSearch.setText("");
-        txtSbdSearch.setText("");
+        txtSearchKeyword.setText("");
         currentPage = 1;
         paginationPanel.reset();
         loadData();
@@ -165,9 +185,7 @@ public class ThiSinhPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Đã thêm thí sinh thành công.",
                     "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
-            // Reset để tránh trường hợp đang lọc/tại trang khác nên không thấy dữ liệu vừa thêm
-            txtCccdSearch.setText("");
-            txtSbdSearch.setText("");
+            txtSearchKeyword.setText("");
             currentPage = 1;
             paginationPanel.reset();
             loadData();
@@ -213,27 +231,27 @@ public class ThiSinhPanel extends JPanel {
 
             ThiSinh existing = service.findByCccd(selectedCccd);
             if (existing == null) {
-            JOptionPane.showMessageDialog(this, "Không tìm thấy thí sinh theo CCCD: " + selectedCccd,
-                "Không tìm thấy", JOptionPane.WARNING_MESSAGE);
-            return;
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thí sinh theo CCCD: " + selectedCccd,
+                        "Không tìm thấy", JOptionPane.WARNING_MESSAGE);
+                return;
             }
 
             int confirm = JOptionPane.showConfirmDialog(this,
-                "Xóa thí sinh CCCD " + selectedCccd + "?\nDữ liệu liên quan (điểm thi, điểm cộng, nguyện vọng) có thể bị xóa theo (CASCADE).",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
+                    "Xóa thí sinh CCCD " + selectedCccd + "?\nDữ liệu liên quan (điểm thi, điểm cộng, nguyện vọng) có thể bị xóa theo (CASCADE).",
+                    "Xác nhận xóa",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
             if (confirm != JOptionPane.YES_OPTION) return;
 
             service.delete(existing);
             JOptionPane.showMessageDialog(this, "Đã xóa thí sinh thành công.",
-                "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
             loadData();
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this,
-                "Có lỗi khi xóa thí sinh:\n" + ex.getMessage(),
-                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    "Có lỗi khi xóa thí sinh:\n" + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -288,30 +306,18 @@ public class ThiSinhPanel extends JPanel {
         }
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
-        form.add(new JLabel("CCCD:"));
-        form.add(txtCccd);
-        form.add(new JLabel("Số báo danh:"));
-        form.add(txtSoBaoDanh);
-        form.add(new JLabel("Họ:"));
-        form.add(txtHo);
-        form.add(new JLabel("Tên:"));
-        form.add(txtTen);
-        form.add(new JLabel("Ngày sinh:"));
-        form.add(txtNgaySinh);
-        form.add(new JLabel("Điện thoại:"));
-        form.add(txtDienThoai);
-        form.add(new JLabel("Mật khẩu:"));
-        form.add(txtPassword);
-        form.add(new JLabel("Giới tính:"));
-        form.add(txtGioiTinh);
-        form.add(new JLabel("Email:"));
-        form.add(txtEmail);
-        form.add(new JLabel("Nơi sinh:"));
-        form.add(txtNoiSinh);
-        form.add(new JLabel("Đối tượng:"));
-        form.add(txtDoiTuong);
-        form.add(new JLabel("Khu vực:"));
-        form.add(txtKhuVuc);
+        form.add(new JLabel("CCCD:")); form.add(txtCccd);
+        form.add(new JLabel("Số báo danh:")); form.add(txtSoBaoDanh);
+        form.add(new JLabel("Họ:")); form.add(txtHo);
+        form.add(new JLabel("Tên:")); form.add(txtTen);
+        form.add(new JLabel("Ngày sinh:")); form.add(txtNgaySinh);
+        form.add(new JLabel("Điện thoại:")); form.add(txtDienThoai);
+        form.add(new JLabel("Mật khẩu:")); form.add(txtPassword);
+        form.add(new JLabel("Giới tính:")); form.add(txtGioiTinh);
+        form.add(new JLabel("Email:")); form.add(txtEmail);
+        form.add(new JLabel("Nơi sinh:")); form.add(txtNoiSinh);
+        form.add(new JLabel("Đối tượng:")); form.add(txtDoiTuong);
+        form.add(new JLabel("Khu vực:")); form.add(txtKhuVuc);
 
         int option = JOptionPane.showConfirmDialog(this,
                 form,
@@ -323,7 +329,7 @@ public class ThiSinhPanel extends JPanel {
         String cccd = txtCccd.getText().trim();
         if (cccd.isBlank()) {
             JOptionPane.showMessageDialog(this, "CCCD không được để trống.",
-                "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+                    "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             return null;
         }
 
@@ -344,10 +350,6 @@ public class ThiSinhPanel extends JPanel {
         return ts;
     }
 
-
-    
-
-
     private void importExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileFilter(
@@ -363,7 +365,6 @@ public class ThiSinhPanel extends JPanel {
                 () -> new ThiSinhImportService().importFromExcel(file, progressDialog)
         );
 
-        // Nếu có lỗi thì hiện chi tiết
         if (result.hasErrors()) {
             JTextArea textArea = new JTextArea(String.join("\n", result.getErrors()));
             textArea.setEditable(false);
