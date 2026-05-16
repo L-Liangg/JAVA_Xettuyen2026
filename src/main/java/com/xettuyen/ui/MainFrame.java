@@ -66,7 +66,7 @@ public class MainFrame extends JFrame {
         addMenuItem(panel, "Ngành - Tổ hợp", "nganh_tohop");
         addMenuItem(panel, "Điểm thi",        "diem_thi");
         addMenuItem(panel, "Điểm cộng",       "diem_cong");
-        addMenuItem(panel, "Nguyện vọng",     "nguyen_vong");
+        addMenuItem(panel, "Nguyện vọng - Xét tuyển",     "nguyen_vong");
         addMenuItem(panel, "Bảng quy đổi",    "bang_quy_doi");
 
         panel.add(Box.createVerticalGlue());

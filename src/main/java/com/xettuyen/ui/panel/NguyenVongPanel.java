@@ -40,7 +40,7 @@ public class NguyenVongPanel extends JPanel {
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
         // ===== TITLE =====
-        JLabel title = new JLabel("QUẢN LÝ NGUYỆN VỌNG");
+        JLabel title = new JLabel("QUẢN LÝ NGUYỆN VỌNG - XÉT TUYỂN ");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(title);

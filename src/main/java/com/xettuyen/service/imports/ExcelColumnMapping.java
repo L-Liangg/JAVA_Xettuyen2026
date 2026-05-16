@@ -100,4 +100,16 @@ public class ExcelColumnMapping {
         put("điểm tổng", "diemTong");
         put("ghi chú", "ghichu");
     }};
+
+    public static final Map<String, String> BANG_QUY_DOI = new LinkedHashMap<>() {{
+        put("phương thức", "d_phuongthuc");
+        put("tổ hợp", "d_tohop");
+        put("môn", "d_mon");
+        put("điểm a", "d_diema");
+        put("điểm b", "d_diemb");
+        put("điểm c", "d_diemc");
+        put("điểm d", "d_diemd");
+        put("mã quy đổi", "d_maquydoi");
+        put("phân vị", "d_phanvi");
+    }};
 }
