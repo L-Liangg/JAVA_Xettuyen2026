@@ -385,7 +385,7 @@ public class NganhPanel extends JPanel {
         n.setSl_xtt(parseIntOrNull(txtSlXtt.getText()));
         n.setSl_dgnl(parseIntOrNull(txtSlDgnl.getText()));
         n.setSl_vsat(parseIntOrNull(txtSlVsat.getText()));
-        n.setSl_thpt(parseIntOrNull(txtSlThpt.getText()));
+        n.setSl_thpt(blankToNull(txtSlThpt.getText()));
         return n;
     }
 

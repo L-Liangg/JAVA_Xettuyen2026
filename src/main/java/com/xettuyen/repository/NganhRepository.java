@@ -102,7 +102,7 @@ public class NganhRepository extends BaseRepository<Nganh> {
                 n.setSl_xtt(xttMap.getOrDefault(n.getManganh(), 0L).intValue());
                 n.setSl_dgnl(dgnlMap.getOrDefault(n.getManganh(), 0L).intValue());
                 n.setSl_vsat(vsatMap.getOrDefault(n.getManganh(), 0L).intValue());
-                n.setSl_thpt(thptMap.getOrDefault(n.getManganh(), 0L).intValue());
+                n.setSl_thpt(String.valueOf(thptMap.getOrDefault(n.getManganh(), 0L).intValue()));
                 session.merge(n);
             }
 

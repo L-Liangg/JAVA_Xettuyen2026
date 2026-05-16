@@ -170,11 +170,7 @@ CREATE TABLE `xt_thisinhxettuyen25` (
   `password` varchar(100) DEFAULT NULL,
   `gioi_tinh` varchar(10) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
-<<<<<<< HEAD
   `noi_sinh` varchar(80) DEFAULT NULL,
-=======
-  `noi_sinh` varchar(45) DEFAULT NULL,
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
   `updated_at` date DEFAULT NULL,
   `doi_tuong` varchar(45) DEFAULT NULL,
   `khu_vuc` varchar(45) DEFAULT NULL,

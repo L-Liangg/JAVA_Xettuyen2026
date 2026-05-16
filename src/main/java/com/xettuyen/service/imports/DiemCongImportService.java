@@ -121,6 +121,8 @@ public class DiemCongImportService {
                     }
                 }
 
+                dc.setDiemTong(computeDiemTong(dc.getDiemCC(), dc.getDiemUtxt()));
+
                 validEntries.add(new Pair<>(dc, isNew));
             }
 
@@ -168,5 +170,13 @@ public class DiemCongImportService {
         }
 
         return result;
+    }
+
+    private static BigDecimal computeDiemTong(BigDecimal diemCC, BigDecimal diemUtxt) {
+        BigDecimal sum = BigDecimal.ZERO;
+        if (diemCC != null) sum = sum.add(diemCC);
+        if (diemUtxt != null) sum = sum.add(diemUtxt);
+        BigDecimal max = BigDecimal.valueOf(3);
+        return sum.compareTo(max) > 0 ? max : sum;
     }
 }
