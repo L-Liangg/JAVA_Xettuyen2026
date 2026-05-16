@@ -117,10 +117,7 @@ public class ExcelColumnMapping {
     }};
 
     public static final Map<String, String> BANG_QUY_DOI = new LinkedHashMap<>() {{
-<<<<<<< HEAD
-=======
         put("mã quy đổi", "d_maquydoi");
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
         put("phương thức", "d_phuongthuc");
         put("tổ hợp", "d_tohop");
         put("môn", "d_mon");
@@ -128,13 +125,6 @@ public class ExcelColumnMapping {
         put("điểm b", "d_diemb");
         put("điểm c", "d_diemc");
         put("điểm d", "d_diemd");
-<<<<<<< HEAD
-        put("mã quy đổi", "d_maquydoi");
         put("phân vị", "d_phanvi");
     }};
 }
-=======
-        put("phân vị", "d_phanvi");
-    }};
-}
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0

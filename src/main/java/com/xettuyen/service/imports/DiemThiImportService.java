@@ -11,11 +11,7 @@ import org.hibernate.Session;
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
-<<<<<<< HEAD
-import java.text.Normalizer;
-=======
 
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
 import java.util.*;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
@@ -44,19 +40,12 @@ public class DiemThiImportService {
             Map<String, Integer> colIndex = new HashMap<>();
             for (Cell cell : headerRow) {
                 String val = getCellValue(cell);
-<<<<<<< HEAD
-                if (val != null) colIndex.put(normHeader(val), cell.getColumnIndex());
-            }
-
-            if (!colIndex.containsKey(normHeader("cccd"))) {
-=======
 
                 if (val != null) colIndex.put(val.toLowerCase().trim(), cell.getColumnIndex());
             }
 
             if (!colIndex.containsKey("cccd")) {
 
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                 result.addError(0, "File thiếu cột khóa 'CCCD'");
                 session.getTransaction().rollback();
                 return result;
@@ -80,12 +69,8 @@ public class DiemThiImportService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-<<<<<<< HEAD
-                String cccd = getCellValue(row.getCell(colIndex.get(normHeader("cccd"))));
-=======
                 String cccd = getCellValue(row.getCell(colIndex.get("cccd")));
 
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                 if (cccd == null || cccd.isBlank()) {
                     boolean isEmptyRow = true;
                     for (Cell cell : row) {
@@ -114,12 +99,8 @@ public class DiemThiImportService {
                 }
 
                 for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_THI.entrySet()) {
-<<<<<<< HEAD
-                    String excelCol = normHeader(entry.getKey());
-=======
                     String excelCol = entry.getKey();
 
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
                     String fieldName = entry.getValue();
                     if (!colIndex.containsKey(excelCol)) continue;
 
@@ -193,12 +174,5 @@ public class DiemThiImportService {
         }
 
         return result;
-    }
-
-    private static String normHeader(String value) {
-        if (value == null) return "";
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized.toLowerCase().trim().replaceAll("\\s+", " ");
     }
 }

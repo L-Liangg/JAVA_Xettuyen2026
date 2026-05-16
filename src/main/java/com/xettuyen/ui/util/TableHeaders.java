@@ -49,11 +49,7 @@ public class TableHeaders {
 
     public static final String[] THI_SINH = {
             "CCCD", "Số báo danh", "Họ", "Tên", "Ngày sinh",
-<<<<<<< HEAD
-            "Điện thoại","Mật khẩu" ,"Giới tính", "Email", "Nơi sinh",
-=======
             "Điện thoại", "Giới tính", "Email", "Mật khẩu", "Nơi sinh",
->>>>>>> 4e2abf2a3594ffbc505c1eb89b19f48c34e322f0
             "Ngày cập nhật", "Đối tượng", "Khu vực"
     };
 
