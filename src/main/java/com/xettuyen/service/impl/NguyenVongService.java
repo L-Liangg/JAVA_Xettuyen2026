@@ -63,4 +63,8 @@ public class NguyenVongService {
     public void delete(NguyenVong nguyenVong) {
         repository.delete(nguyenVong);
     }
+
+    public List<String> recalculateThxtAll() {
+        return new ThxtCalculationService().recalculateAll();
+    }
 }

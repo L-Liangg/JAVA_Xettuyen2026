@@ -5,7 +5,7 @@ import com.xettuyen.service.impl.BangQuyDoiService;
 import com.xettuyen.service.imports.BangQuyDoiImportService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
-import com.xettuyen.ui.util.PaginationPanel;
+import com.xettuyen.ui.util.PaginationPanel;    
 import com.xettuyen.ui.util.PlaceholderTextField;
 
 import com.xettuyen.ui.util.TableHeaders;
@@ -81,14 +81,17 @@ public class BangQuyDoiPanel extends JPanel {
         JButton btnAdd    = new JButton("Thêm mới");
         JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
+        JButton btnImport = new JButton("Import Excel");
 
         btnAdd.addActionListener(e -> addBangQuyDoi());
         btnEdit.addActionListener(e -> updateBangQuyDoi());
         btnDelete.addActionListener(e -> deleteBangQuyDoi());
+        btnImport.addActionListener(e -> importExcel());
 
         btnPanel.add(btnAdd);
         btnPanel.add(btnEdit);
         btnPanel.add(btnDelete);
+        btnPanel.add(btnImport);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
@@ -118,10 +121,10 @@ public class BangQuyDoiPanel extends JPanel {
         add(paginationPanel, BorderLayout.SOUTH);
     }
 
-    private void importExcel() {
+        private void importExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileFilter(
-                new javax.swing.filechooser.FileNameExtensionFilter("Excel files", "xlsx"));
+            new javax.swing.filechooser.FileNameExtensionFilter("Excel files", "xlsx"));
 
         if (fileChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
@@ -130,7 +133,7 @@ public class BangQuyDoiPanel extends JPanel {
 
         ImportProgressDialog progressDialog = new ImportProgressDialog(parent);
         ImportResult result = progressDialog.startImport(
-                () -> new BangQuyDoiImportService().importFromExcel(file, progressDialog)
+            () -> new BangQuyDoiImportService().importFromExcel(file, progressDialog)
         );
 
         if (result.hasErrors()) {
@@ -140,11 +143,11 @@ public class BangQuyDoiPanel extends JPanel {
             JScrollPane scroll = new JScrollPane(textArea);
             scroll.setPreferredSize(new Dimension(400, 200));
             JOptionPane.showMessageDialog(this, scroll,
-                    "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
+                "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
         }
 
         loadData();
-    }
+        }
 
     private void loadData() {
         String phuongthuc = txtPhuongthucSearch != null ? txtPhuongthucSearch.getText().trim() : "";
@@ -276,8 +279,8 @@ public class BangQuyDoiPanel extends JPanel {
             return null;
         }
         int modelRow = table.convertRowIndexToModel(viewRow);
-        // Column 7 = d_maquydoi
-        Object value = tableModel.getValueAt(modelRow, 7);
+        // Column 0 = d_maquydoi
+        Object value = tableModel.getValueAt(modelRow, 0);
         String maquydoi = Objects.toString(value, "").trim();
         if (maquydoi.isBlank()) {
             JOptionPane.showMessageDialog(this, "Dòng đã chọn không có mã quy đổi hợp lệ.",

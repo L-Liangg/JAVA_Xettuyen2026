@@ -1,6 +1,6 @@
 package com.xettuyen.repository;
 
-import com.mysql.cj.x.protobuf.MysqlxDatatypes;
+// import com.mysql.cj.x.protobuf.MysqlxDatatypes;
 import com.xettuyen.config.HibernateUtil;
 import com.xettuyen.entity.BangQuyDoi;
 import org.hibernate.Session;
@@ -71,6 +71,28 @@ public class BangQuyDoiRepository extends BaseRepository<BangQuyDoi> {
             return session.createQuery("FROM BangQuyDoi b WHERE b.d_maquydoi = :maquydoi", BangQuyDoi.class)
                     .setParameter("maquydoi", maquydoi)
                     .uniqueResult();
+        }
+    }
+
+    public List<BangQuyDoi> findByPhuongthucMon(String phuongthuc, String mon) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                            "FROM BangQuyDoi b WHERE b.d_phuongthuc = :phuongthuc AND b.d_mon = :mon ORDER BY b.d_diema ASC",
+                            BangQuyDoi.class)
+                    .setParameter("phuongthuc", phuongthuc)
+                    .setParameter("mon", mon)
+                    .list();
+        }
+    }
+
+    public List<BangQuyDoi> findByPhuongthucTohop(String phuongthuc, String tohop) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                            "FROM BangQuyDoi b WHERE b.d_phuongthuc = :phuongthuc AND b.d_tohop = :tohop AND b.d_mon IS NULL ORDER BY b.d_diema ASC",
+                            BangQuyDoi.class)
+                    .setParameter("phuongthuc", phuongthuc)
+                    .setParameter("tohop", tohop)
+                    .list();
         }
     }
 }

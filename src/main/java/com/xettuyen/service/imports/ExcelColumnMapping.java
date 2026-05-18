@@ -114,6 +114,8 @@ public class ExcelColumnMapping {
         put("điểm utxt", "diemUtxt");
         put("điểm tổng", "diemTong");
         put("ghi chú", "ghichu");
+        put("khu vực", "ghichu");
+        put("khu vuc", "ghichu");
     }};
 
     public static final Map<String, String> BANG_QUY_DOI = new LinkedHashMap<>() {{

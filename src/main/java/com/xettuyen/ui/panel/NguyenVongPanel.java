@@ -147,6 +147,7 @@ public class NguyenVongPanel extends JPanel {
         txtManganhSearch.setText("");
         currentPage = 1;
         paginationPanel.reset();
+        showCalcWarnings(service.recalculateThxtAll());
         loadData();
     }
 
@@ -378,7 +379,20 @@ public class NguyenVongPanel extends JPanel {
                     "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
         }
 
+        showCalcWarnings(service.recalculateThxtAll());
+
         loadData();
+    }
+
+    private void showCalcWarnings(List<String> warnings) {
+        if (warnings == null || warnings.isEmpty()) return;
+        JTextArea textArea = new JTextArea(String.join("\n", warnings));
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        JScrollPane scroll = new JScrollPane(textArea);
+        scroll.setPreferredSize(new Dimension(480, 220));
+        JOptionPane.showMessageDialog(this, scroll,
+                "Cảnh báo tính THXT", JOptionPane.WARNING_MESSAGE);
     }
 
 

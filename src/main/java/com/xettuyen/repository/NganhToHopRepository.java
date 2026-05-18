@@ -7,11 +7,11 @@ import org.hibernate.query.Query;
 
 import java.util.List;
 
-import com.xettuyen.config.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+// import com.xettuyen.config.HibernateUtil;
+// import org.hibernate.Session;
+// import org.hibernate.query.Query;
 
-import java.util.List;
+// import java.util.List;
 
 public class NganhToHopRepository extends BaseRepository<NganhToHop> {
 
@@ -52,6 +52,14 @@ public class NganhToHopRepository extends BaseRepository<NganhToHop> {
                     .setParameter("matohop", matohop)
                     .setParameter("matohopKw", "%" + matohop + "%")
                     .uniqueResult();
+        }
+    }
+
+    public List<NganhToHop> findAllByManganh(String manganh) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery("FROM NganhToHop n WHERE n.manganh = :manganh", NganhToHop.class)
+                    .setParameter("manganh", manganh)
+                    .list();
         }
     }
 }

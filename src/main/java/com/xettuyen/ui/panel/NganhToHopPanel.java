@@ -332,7 +332,7 @@ public class NganhToHopPanel extends JPanel {
         List<String> toHopCodes = new ArrayList<>();
         for (ToHopMon t : toHopList) {
             String code = Objects.toString(t.getMatohop(), "").trim();
-            String display = code + " (" + t.getMon1() + "-" + t.getMon2() + "-" + t.getMon3() + ")";
+            
             cbToHop.addItem(code);
             toHopCodes.add(code);
         }
