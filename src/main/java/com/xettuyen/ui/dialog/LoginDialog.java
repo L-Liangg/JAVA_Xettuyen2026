@@ -1,6 +1,7 @@
 package com.xettuyen.ui.dialog;
 
 import com.xettuyen.service.LoginService;
+import com.xettuyen.ui.MainFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,9 +10,7 @@ import java.awt.event.*;
 /**
  * LoginDialog - Login Form for Desktop Application
  * 
- * Connects to Laravel Backend API to authenticate user
- * Shows loading indicator during API call
- * Handles error messages from server
+ * Authenticates user and opens main window on success
  */
 public class LoginDialog extends JDialog {
     private static final Color OUTER_BG = Color.WHITE;
@@ -36,20 +35,10 @@ public class LoginDialog extends JDialog {
     private String passwordPlaceholder = "Password";
     
     private LoginService loginService;
-    private LoginCallback loginCallback;
     private LoginService.LoginResponse lastLoginResponse;
-    
-    /**
-     * Interface for login callback
-     */
-    public interface LoginCallback {
-        void onLoginSuccess(LoginService.LoginResponse response);
-        void onLoginFailed(String message);
-    }
-    
-    public LoginDialog(Frame owner, LoginCallback callback) {
+
+    public LoginDialog(Frame owner) {
         super(owner, "Đăng nhập - Hệ thống Xét tuyển 2026", true);
-        this.loginCallback = callback;
         this.loginService = new LoginService();
         
         initUI();
@@ -198,8 +187,8 @@ public class LoginDialog extends JDialog {
         loginButton.addActionListener(e -> performLogin());
 
         closeButton.addActionListener(e -> {
-            loginCallback.onLoginFailed("Người dùng đã hủy đăng nhập");
             dispose();
+            System.exit(0);
         });
 
         loginButton.addMouseListener(new MouseAdapter() {
@@ -229,8 +218,8 @@ public class LoginDialog extends JDialog {
         // Close button
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                loginCallback.onLoginFailed("Cửa sổ đăng nhập đã đóng");
                 dispose();
+                System.exit(0);
             }
         });
 
@@ -326,8 +315,9 @@ public class LoginDialog extends JDialog {
                             welcomeMsg,
                             "Thành công",
                             JOptionPane.INFORMATION_MESSAGE);
-                        
-                        loginCallback.onLoginSuccess(response);
+
+                        MainFrame mainFrame = new MainFrame(response);
+                        mainFrame.setVisible(true);
                         dispose();
                     } else {
                         showError(response.getMessage());
