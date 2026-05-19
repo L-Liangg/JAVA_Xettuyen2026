@@ -1,6 +1,7 @@
 package com.xettuyen.service;
 
 import com.xettuyen.config.HibernateUtil;
+import com.xettuyen.repository.LoginRepository;
 import org.hibernate.Session;
 import org.hibernate.query.NativeQuery;
 
@@ -23,12 +24,7 @@ public class LoginService {
     private static final String[] ALLOWED_ROLES = {"admin", "teacher"};
     
     // SQL Query with JOIN
-    private static final String SQL_LOGIN =
-        "SELECT xu.iduser, xu.username, xu.full_name, xu.email, xu.phone, " +
-        "       xu.role_id, xu.is_active, xr.idrole, xr.role_name, xr.description " +
-        "FROM xt_users xu " +
-        "JOIN xt_roles xr ON xu.role_id = xr.idrole " +
-        "WHERE xu.username = :username AND xu.password = :password AND xu.is_active = 1";
+    private static final String SQL_LOGIN = LoginRepository.SQL_LOGIN;
     
     /**
     * Authenticate user with username and password
