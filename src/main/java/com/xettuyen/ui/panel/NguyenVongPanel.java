@@ -24,7 +24,6 @@ public class NguyenVongPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
-
     private JTextField txtCccdSearch;
     private JTextField txtManganhSearch;
 
@@ -380,7 +379,6 @@ public class NguyenVongPanel extends JPanel {
 
         loadData();
     }
-
 
     private static String blankToNull(String value) {
         if (value == null) return null;

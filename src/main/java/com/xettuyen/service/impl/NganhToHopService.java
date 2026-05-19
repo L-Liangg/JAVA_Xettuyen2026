@@ -50,4 +50,3 @@ public class NganhToHopService {
         repository.delete(nganhToHop);
     }
 }
-

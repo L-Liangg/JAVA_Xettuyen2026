@@ -1,7 +1,6 @@
 package com.xettuyen.repository;
 
 import com.xettuyen.entity.NganhToHop;
-
 import com.xettuyen.config.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
@@ -50,4 +49,3 @@ public class NganhToHopRepository extends BaseRepository<NganhToHop> {
         }
     }
 }
-

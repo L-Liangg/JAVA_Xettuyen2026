@@ -12,10 +12,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
-
 import java.math.BigDecimal;
 import java.util.Objects;
-
 import java.util.List;
 
 public class NganhPanel extends JPanel {
@@ -25,7 +23,6 @@ public class NganhPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
-
     private JTextField txtManganhSearch;
     private JTextField txtTennganhSearch;
 
@@ -41,7 +38,6 @@ public class NganhPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ NGÀNH TUYỂN SINH");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -337,7 +333,9 @@ public class NganhPanel extends JPanel {
             txtSlXtt.setText(existing.getSl_xtt() == null ? "" : String.valueOf(existing.getSl_xtt()));
             txtSlDgnl.setText(existing.getSl_dgnl() == null ? "" : String.valueOf(existing.getSl_dgnl()));
             txtSlVsat.setText(existing.getSl_vsat() == null ? "" : String.valueOf(existing.getSl_vsat()));
+
             txtSlThpt.setText(existing.getSl_thpt() == null ? "" : String.valueOf(existing.getSl_thpt()));
+
             txtMa.setEditable(false);
         }
 
@@ -386,6 +384,7 @@ public class NganhPanel extends JPanel {
         n.setSl_dgnl(parseIntOrNull(txtSlDgnl.getText()));
         n.setSl_vsat(parseIntOrNull(txtSlVsat.getText()));
         n.setSl_thpt(parseIntOrNull(txtSlThpt.getText()));
+
         return n;
     }
 

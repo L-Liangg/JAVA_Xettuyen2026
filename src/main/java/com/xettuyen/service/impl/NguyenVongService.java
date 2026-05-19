@@ -64,4 +64,3 @@ public class NguyenVongService {
         repository.delete(nguyenVong);
     }
 }
-

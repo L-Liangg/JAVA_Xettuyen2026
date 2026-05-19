@@ -20,9 +20,7 @@ public class ToHopMonPanel extends JPanel {
     private final ToHopMonService service = new ToHopMonService();
     private JTable table;
     private DefaultTableModel tableModel;
-
     private JTextField txtMatohopSearch;
-
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
 
@@ -38,7 +36,6 @@ public class ToHopMonPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ TỔ HỢP MÔN");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);

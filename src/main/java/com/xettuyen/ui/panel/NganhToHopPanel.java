@@ -11,7 +11,6 @@ import com.xettuyen.service.imports.NganhToHopImportService;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
-
 import com.xettuyen.ui.util.TableHeaders;
 
 import javax.swing.*;
@@ -26,15 +25,12 @@ import java.util.Objects;
 public class NganhToHopPanel extends JPanel {
 
     private final NganhToHopService service = new NganhToHopService();
-
     private final NganhService nganhService = new NganhService();
     private final ToHopMonService toHopMonService = new ToHopMonService();
-
     private JTable table;
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
-
     private JTextField txtManganhSearch;
     private JTextField txtMatohopSearch;
 
@@ -46,12 +42,10 @@ public class NganhToHopPanel extends JPanel {
     }
 
     private void initUI() {
-
         // ===== PANEL CHA (DỌC) =====
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ NGÀNH - TỔ HỢP");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);

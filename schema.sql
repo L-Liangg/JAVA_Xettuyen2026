@@ -69,7 +69,12 @@ CREATE TABLE `xt_diemcongxetuyen` (
   `dc_keys` varchar(45) NOT NULL,
   PRIMARY KEY (`iddiemcong`),
   UNIQUE KEY `dc_keys_UNIQUE` (`dc_keys`)
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=u
+tf8mb4 COLLATE=utf8mb4_general_ci;
+>>>>>>> origin/annguyen
 
 DROP TABLE IF EXISTS `xt_diemthixettuyen`;
 CREATE TABLE `xt_diemthixettuyen` (

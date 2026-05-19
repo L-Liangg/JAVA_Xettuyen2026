@@ -10,7 +10,6 @@ import com.xettuyen.ui.dialog.ThiSinhThongKeDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -21,13 +20,10 @@ import java.util.Objects;
 import java.util.List;
 
 public class ThiSinhPanel extends JPanel {
-
     private final ThiSinhService service = new ThiSinhService();
     private JTable table;
     private DefaultTableModel tableModel;
-
     private JTextField txtSearchKeyword;
-
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
 
@@ -70,6 +66,7 @@ public class ThiSinhPanel extends JPanel {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
         JButton btnStats = new JButton("Thống kê");
+
         JButton btnAdd = new JButton("Thêm mới");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
@@ -79,6 +76,7 @@ public class ThiSinhPanel extends JPanel {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             new ThiSinhThongKeDialog(parent, service).setVisible(true);
         });
+
         btnAdd.addActionListener(e -> addThiSinh());
         btnEdit.addActionListener(e -> updateThiSinh());
         btnDelete.addActionListener(e -> deleteThiSinh());
@@ -231,6 +229,7 @@ public class ThiSinhPanel extends JPanel {
 
             ThiSinh existing = service.findByCccd(selectedCccd);
             if (existing == null) {
+
                 JOptionPane.showMessageDialog(this, "Không tìm thấy thí sinh theo CCCD: " + selectedCccd,
                         "Không tìm thấy", JOptionPane.WARNING_MESSAGE);
                 return;
@@ -241,6 +240,7 @@ public class ThiSinhPanel extends JPanel {
                     "Xác nhận xóa",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE);
+
             if (confirm != JOptionPane.YES_OPTION) return;
 
             service.delete(existing);

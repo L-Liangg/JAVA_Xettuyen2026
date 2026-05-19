@@ -1,6 +1,5 @@
 package com.xettuyen.repository;
 
-import com.mysql.cj.x.protobuf.MysqlxDatatypes;
 import com.xettuyen.config.HibernateUtil;
 import com.xettuyen.entity.BangQuyDoi;
 import org.hibernate.Session;
@@ -74,4 +73,3 @@ public class BangQuyDoiRepository extends BaseRepository<BangQuyDoi> {
         }
     }
 }
-

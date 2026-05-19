@@ -1,7 +1,7 @@
 package com.xettuyen.ui;
 
 import com.xettuyen.ui.panel.*;
-
+import com.xettuyen.service.LoginService;
 import javax.swing.*;
 import java.awt.*;
 
@@ -9,10 +9,22 @@ public class MainFrame extends JFrame {
 
     private JPanel contentPanel;
     private CardLayout cardLayout;
+    private LoginService.LoginResponse loginResponse;
+    private LogoutCallback logoutCallback;
+    
+    /**
+     * Callback for logout event
+     */
+    public interface LogoutCallback {
+        void onLogout();
+    }
 
-    public MainFrame() {
-        setTitle("Hệ thống Xét tuyển 2026");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    public MainFrame(LoginService.LoginResponse response, LogoutCallback callback) {
+        this.loginResponse = response;
+        this.logoutCallback = callback;
+        
+        setTitle("Hệ thống Xét tuyển 2026 - " + response.getFullName());
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1280, 720);
         setLocationRelativeTo(null);
 
@@ -58,13 +70,27 @@ public class MainFrame extends JFrame {
         title.setFont(new Font("Arial", Font.BOLD, 13));
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(title);
+
+        // User info
+        JLabel userLabel = new JLabel("Đăng nhập: " + loginResponse.getUsername());
+        userLabel.setForeground(new Color(189, 195, 199));
+        userLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        userLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(userLabel);
+        
+        JLabel roleLabel = new JLabel("Vai trò: " + loginResponse.getRoleName());
+        roleLabel.setForeground(new Color(189, 195, 199));
+        roleLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        roleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(roleLabel);
+        
         panel.add(Box.createVerticalStrut(20));
 
         // Menu items
-        addMenuItem(panel, "Thí sinh",        "thi_sinh");
+        addMenuItem(panel, "Thí sinh",       "thi_sinh");
         addMenuItem(panel, "Ngành",           "nganh");
-        addMenuItem(panel, "Tổ hợp môn",      "tohop_mon");
-        addMenuItem(panel, "Ngành - Tổ hợp",  "nganh_tohop");
+        addMenuItem(panel, "Tổ hợp môn",     "tohop_mon");
+        addMenuItem(panel, "Ngành - Tổ hợp", "nganh_tohop");
         addMenuItem(panel, "Điểm thi",        "diem_thi");
         addMenuItem(panel, "Điểm DGNL/VSAT",  "diem_thi_dgnl_vsat");
         addMenuItem(panel, "Điểm cộng",       "diem_cong");
@@ -72,6 +98,30 @@ public class MainFrame extends JFrame {
         addMenuItem(panel, "Bảng quy đổi",    "bang_quy_doi");
 
         panel.add(Box.createVerticalGlue());
+        
+        // Logout button
+        JButton logoutButton = new JButton("Đăng Xuất");
+        logoutButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logoutButton.setBackground(new Color(192, 57, 43));
+        logoutButton.setForeground(Color.WHITE);
+        logoutButton.setFocusPainted(false);
+        logoutButton.setBorderPainted(false);
+        logoutButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        logoutButton.addActionListener(e -> {
+            int result = JOptionPane.showConfirmDialog(this,
+                "Bạn có chắc muốn đăng xuất?",
+                "Xác nhận",
+                JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                if (logoutCallback != null) {
+                    logoutCallback.onLogout();
+                }
+                dispose();
+            }
+        });
+        panel.add(logoutButton);
+
         return panel;
     }
 

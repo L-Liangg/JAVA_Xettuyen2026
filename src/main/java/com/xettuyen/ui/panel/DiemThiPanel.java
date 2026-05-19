@@ -28,7 +28,6 @@ public class DiemThiPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
-
     private JTextField txtCccdSearch;
     private JTextField txtSbdSearch;
 
@@ -44,7 +43,6 @@ public class DiemThiPanel extends JPanel {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-// ===== TITLE =====
         JLabel title = new JLabel("QUẢN LÝ ĐIỂM THI");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -129,6 +127,7 @@ public class DiemThiPanel extends JPanel {
     private void loadData() {
         String cccd = txtCccdSearch != null ? txtCccdSearch.getText().trim() : "";
         String sbd = txtSbdSearch != null ? txtSbdSearch.getText().trim() : "";
+
         int totalPages = service.getTotalPagesAnd(cccd, sbd);
         if (currentPage > totalPages) currentPage = totalPages;
 

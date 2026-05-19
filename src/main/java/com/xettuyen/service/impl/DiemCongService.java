@@ -64,4 +64,3 @@ public class DiemCongService {
         repository.delete(diemCong);
     }
 }
-

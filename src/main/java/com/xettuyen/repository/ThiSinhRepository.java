@@ -4,10 +4,10 @@ import com.xettuyen.config.HibernateUtil;
 import com.xettuyen.entity.ThiSinh;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 
 public class ThiSinhRepository extends BaseRepository<ThiSinh> {
 
@@ -77,4 +77,3 @@ public class ThiSinhRepository extends BaseRepository<ThiSinh> {
         }
     }
 }
-

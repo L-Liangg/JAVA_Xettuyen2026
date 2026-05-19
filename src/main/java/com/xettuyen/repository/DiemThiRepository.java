@@ -81,4 +81,3 @@ public class DiemThiRepository extends BaseRepository<DiemThi> {
         }
     }
 }
-

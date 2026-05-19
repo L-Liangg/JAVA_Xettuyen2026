@@ -4,7 +4,6 @@ import com.xettuyen.config.HibernateUtil;
 import com.xettuyen.entity.Nganh;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

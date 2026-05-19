@@ -6,19 +6,15 @@ import com.xettuyen.service.imports.DiemCongImportService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
-
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
-
 
 public class DiemCongPanel extends JPanel {
 
@@ -27,7 +23,6 @@ public class DiemCongPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PaginationPanel paginationPanel;
     private int currentPage = 1;
-
     private JTextField txtCccdSearch;
     private JTextField txtManganhSearch;
 
@@ -41,7 +36,6 @@ public class DiemCongPanel extends JPanel {
     private void initUI() {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
-
         JLabel title = new JLabel("QUẢN LÝ ĐIỂM CỘNG");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -401,4 +395,3 @@ public class DiemCongPanel extends JPanel {
         return value == null ? "" : value.toPlainString();
     }
 }
-
