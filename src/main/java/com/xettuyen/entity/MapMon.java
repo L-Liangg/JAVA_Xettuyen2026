@@ -9,14 +9,11 @@ public class MapMon {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "mon_thpt", unique = true)
+    @Column(name = "mon_thpt")
     private String mon_thpt;
 
     @Column(name = "mon_vsat")
     private String mon_vsat;
-
-    @Column(name = "mon_dgnl")
-    private String mon_dgnl;
 
     @Column(name = "ten_mon")
     private String ten_mon;
@@ -43,14 +40,6 @@ public class MapMon {
 
     public void setMon_vsat(String mon_vsat) {
         this.mon_vsat = mon_vsat;
-    }
-
-    public String getMon_dgnl() {
-        return mon_dgnl;
-    }
-
-    public void setMon_dgnl(String mon_dgnl) {
-        this.mon_dgnl = mon_dgnl;
     }
 
     public String getTen_mon() {

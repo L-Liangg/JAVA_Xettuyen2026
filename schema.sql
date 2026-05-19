@@ -282,23 +282,47 @@ CREATE TABLE xettuyen2026.xt_diemthi_dgnl_vsat (
 
 
   -- Bảng map mon theo schema hien tai
+-- Tạo bảng mới (bỏ unique key mon_thpt để cho phép trùng)
 CREATE TABLE `xt_map_mon` (
-        `id` INT NOT NULL AUTO_INCREMENT,
-        `mon_thpt` VARCHAR(10) NOT NULL COMMENT 'Ma chuan THPT (TO, LI, HO, VA, SU, DI, TI, N1...)',
-        `mon_vsat` VARCHAR(20) DEFAULT NULL COMMENT 'Ma VSAT (TO_VS, LI_VS, VA_VS, N1_VS...)',
-        `mon_dgnl` VARCHAR(20) DEFAULT NULL COMMENT 'Ma DGNL (M1, M2, M3, M8, M9...)',
-        `ten_mon` VARCHAR(50) DEFAULT NULL,
-        PRIMARY KEY (`id`),
-        UNIQUE KEY `uk_mon_thpt` (`mon_thpt`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `mon_thpt` VARCHAR(10) NOT NULL COMMENT 'Mã chuẩn THPT (TO, LI, HO, VA, SU, DI, TI, N1...)',
+    `mon_vsat` VARCHAR(20) DEFAULT NULL COMMENT 'Mã VSAT hoặc ĐGNL',
+    `ten_mon` VARCHAR(50) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-    INSERT INTO `xt_map_mon` (`mon_thpt`, `mon_vsat`, `mon_dgnl`, `ten_mon`) VALUES
-    ('TO', 'TO_VS', 'M1', 'Toan'),
-    ('LI', 'LI_VS', 'M2', 'Vat ly'),
-    ('HO', 'HO_VS', 'M3', 'Hoa hoc'),
-    ('VA', 'VA_VS', NULL, 'Ngu van'),
-    ('N1', 'N1_VS', 'M8', 'Tieng Anh'),
-    ('SI', 'SI_VS', 'M4', 'Sinh'),
-    ('TI', NULL, NULL, 'Tin hoc'),
-    ('SU', 'SU_VS', 'M6', 'Lich su'),
-    ('DI', 'DI_VS', 'M7', 'Dia ly');
+-- Chèn dữ liệu (mỗi mã 1 dòng)
+INSERT INTO `xt_map_mon` (`mon_thpt`, `mon_vsat`, `ten_mon`) VALUES
+-- Toán
+('TO', 'TO_VS', 'Toán'),
+('TO', 'M1', 'Toán'),
+
+-- Vật lý
+('LI', 'LI_VS', 'Vật lý'),
+('LI', 'M2', 'Vật lý'),
+
+-- Hóa học
+('HO', 'HO_VS', 'Hóa học'),
+('HO', 'M3', 'Hóa học'),
+
+-- Ngữ văn
+('VA', 'VA_VS', 'Ngữ văn'),
+
+-- Tiếng Anh
+('N1', 'N1_VS', 'Tiếng Anh'),
+('N1', 'M8', 'Tiếng Anh'),
+
+-- Sinh
+('SI', 'SI_VS', 'Sinh'),
+('SI', 'M4', 'Sinh'),
+
+-- Tin học
+('TI', NULL, 'Tin học'),
+
+-- Lịch sử
+('SU', 'SU_VS', 'Lịch sử'),
+('SU', 'M6', 'Lịch sử'),
+
+-- Địa lý
+('DI', 'DI_VS', 'Địa lý'),
+('DI', 'M7', 'Địa lý');

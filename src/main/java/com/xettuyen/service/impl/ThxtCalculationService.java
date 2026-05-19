@@ -47,8 +47,7 @@ public class ThxtCalculationService {
         List<String> warnings = new ArrayList<>();
         List<NguyenVong> list = nguyenVongRepository.findAll();
 
-        Map<String, MapMon> mapMonByThpt = loadMapMonByThpt();
-        Map<String, String> dgnlCodeByThpt = loadDgnlCodeByThpt(mapMonByThpt);
+        Map<String, List<MapMon>> mapMonByThpt = loadMapMonByThpt();
         Map<String, List<BangQuyDoi>> quyDoiCache = new HashMap<>();
 
         for (NguyenVong nv : list) {
@@ -107,7 +106,7 @@ public class ThxtCalculationService {
                     warnings.add(nvKey + ": không tìm thấy điểm " + phuongthuc + ".");
                     continue;
                 }
-                dgnlTotalRaw = sumDgnlTotal(listDv, dgnlCodeByThpt);
+                dgnlTotalRaw = findBestDgnlTotal(listDv);
                 if (dgnlTotalRaw == null) {
                     warnings.add(nvKey + ": không xác định được tổng điểm DGNL.");
                     continue;
@@ -165,7 +164,7 @@ public class ThxtCalculationService {
             DiemThi diemThi,
             Map<String, BigDecimal> dgnlVsatByMon,
             BigDecimal dgnlTotalRaw,
-            Map<String, MapMon> mapMonByThpt,
+            Map<String, List<MapMon>> mapMonByThpt,
             Map<String, List<BangQuyDoi>> quyDoiCache,
             List<String> warnings,
             String nvKey
@@ -223,17 +222,17 @@ public class ThxtCalculationService {
     private BigDecimal getDiemVsatMon(
             String monThpt,
             Map<String, BigDecimal> dgnlVsatByMon,
-            Map<String, MapMon> mapMonByThpt,
+            Map<String, List<MapMon>> mapMonByThpt,
             Map<String, List<BangQuyDoi>> quyDoiCache,
             List<String> warnings,
             String nvKey
     ) {
-        MapMon mapMon = mapMonByThpt.get(monThpt);
-        if (mapMon == null || mapMon.getMon_vsat() == null) {
+        String vsatCode = findVsatCode(monThpt, mapMonByThpt);
+        if (vsatCode == null) {
             warnings.add(nvKey + ": chưa khai báo mã VSAT cho môn " + monThpt + ".");
             return null;
         }
-        BigDecimal raw = dgnlVsatByMon.get(mapMon.getMon_vsat());
+        BigDecimal raw = dgnlVsatByMon.get(vsatCode);
         if (raw == null) {
             warnings.add(nvKey + ": thiếu điểm VSAT môn " + monThpt + ".");
             return null;
@@ -248,7 +247,7 @@ public class ThxtCalculationService {
             List<String> warnings,
             String nvKey
     ) {
-        String tohop = normalize(matohop);
+        String tohop = normalizeTohopCode(matohop);
         if (tohop.isEmpty()) {
             warnings.add(nvKey + ": tổ hợp DGNL không hợp lệ.");
             return null;
@@ -485,45 +484,42 @@ public class ThxtCalculationService {
         return map;
     }
 
-    private Map<String, MapMon> loadMapMonByThpt() {
-        Map<String, MapMon> map = new HashMap<>();
+    private Map<String, List<MapMon>> loadMapMonByThpt() {
+        Map<String, List<MapMon>> map = new HashMap<>();
         for (MapMon mon : mapMonRepository.findAll()) {
-            if (mon.getMon_thpt() != null) {
-                map.put(mon.getMon_thpt().trim().toUpperCase(Locale.ROOT), mon);
-            }
+            if (mon.getMon_thpt() == null) continue;
+            String key = mon.getMon_thpt().trim().toUpperCase(Locale.ROOT);
+            map.computeIfAbsent(key, k -> new ArrayList<>()).add(mon);
         }
         return map;
     }
 
-    private Map<String, String> loadDgnlCodeByThpt(Map<String, MapMon> mapMonByThpt) {
-        Map<String, String> map = new HashMap<>();
-        for (Map.Entry<String, MapMon> entry : mapMonByThpt.entrySet()) {
-            String code = entry.getValue().getMon_dgnl();
-            if (code != null && !code.trim().isEmpty()) {
-                map.put(entry.getKey(), code.trim().toUpperCase(Locale.ROOT));
-            }
+    private String findVsatCode(String monThpt, Map<String, List<MapMon>> mapMonByThpt) {
+        String key = normalize(monThpt);
+        List<MapMon> list = mapMonByThpt.get(key);
+        if (list == null || list.isEmpty()) return null;
+        String fallback = null;
+        for (MapMon mon : list) {
+            if (mon.getMon_vsat() == null || mon.getMon_vsat().trim().isEmpty()) continue;
+            String code = mon.getMon_vsat().trim().toUpperCase(Locale.ROOT);
+            if (code.endsWith("_VS") || code.contains("_VS")) return code;
+            if (fallback == null) fallback = code;
         }
-        return map;
+        return fallback;
     }
 
-    private BigDecimal sumDgnlTotal(List<DiemThiDgnlVsat> listDv, Map<String, String> dgnlCodeByThpt) {
+    private BigDecimal findBestDgnlTotal(List<DiemThiDgnlVsat> listDv) {
         if (listDv == null || listDv.isEmpty()) return null;
-        Map<String, Boolean> dgnlCodes = new HashMap<>();
-        for (String code : dgnlCodeByThpt.values()) {
-            dgnlCodes.put(code, Boolean.TRUE);
-        }
-
-        BigDecimal sum = ZERO;
-        boolean hasAny = false;
+        BigDecimal best = null;
         for (DiemThiDgnlVsat dv : listDv) {
             if (dv.getMa_mon() == null || dv.getDiem() == null) continue;
             String code = dv.getMa_mon().trim().toUpperCase(Locale.ROOT);
-            if (dgnlCodes.containsKey(code)) {
-                sum = sum.add(dv.getDiem());
-                hasAny = true;
+            if (!"DGNL".equals(code)) continue;
+            if (best == null || dv.getDiem().compareTo(best) > 0) {
+                best = dv.getDiem();
             }
         }
-        return hasAny ? sum : null;
+        return best;
     }
 
     private boolean isPhuongThuc(String value, String target) {
@@ -537,6 +533,15 @@ public class ThxtCalculationService {
     private String normalize(String value) {
         if (value == null) return "";
         return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeTohopCode(String value) {
+        String normalized = normalize(value);
+        int idx = normalized.indexOf('(');
+        if (idx >= 0) {
+            return normalized.substring(0, idx).trim();
+        }
+        return normalized;
     }
 
     private String buildNvKey(NguyenVong nv) {
