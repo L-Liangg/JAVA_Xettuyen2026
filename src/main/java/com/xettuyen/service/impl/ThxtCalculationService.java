@@ -32,6 +32,7 @@ public class ThxtCalculationService {
     private static final BigDecimal ZERO = BigDecimal.ZERO;
     private static final int SCALE_INTERNAL = 8;
     private static final int SCALE_OUTPUT = 5;
+    private static final BigDecimal ZERO_OUTPUT = BigDecimal.ZERO.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP);
 
     private final NguyenVongRepository nguyenVongRepository = new NguyenVongRepository();
     private final NganhRepository nganhRepository = new NganhRepository();
@@ -51,6 +52,10 @@ public class ThxtCalculationService {
         Map<String, List<BangQuyDoi>> quyDoiCache = new HashMap<>();
 
         for (NguyenVong nv : list) {
+            nv.setDiem_thxt(ZERO_OUTPUT);
+            nv.setDiem_utqd(ZERO_OUTPUT);
+            nv.setDiem_cong(ZERO_OUTPUT);
+
             String cccd = normalize(nv.getNn_cccd());
             String manganh = normalize(nv.getNv_manganh());
             String phuongthuc = normalize(nv.getTt_phuongthuc());
@@ -58,26 +63,31 @@ public class ThxtCalculationService {
 
             if (cccd.isEmpty()) {
                 warnings.add(nvKey + ": thiếu CCCD.");
+                nguyenVongRepository.update(nv);
                 continue;
             }
             if (manganh.isEmpty()) {
                 warnings.add(nvKey + ": thiếu mã ngành.");
+                nguyenVongRepository.update(nv);
                 continue;
             }
             if (phuongthuc.isEmpty()) {
                 warnings.add(nvKey + ": thiếu phương thức.");
+                nguyenVongRepository.update(nv);
                 continue;
             }
 
             Nganh nganh = nganhRepository.findByManganh(manganh);
             if (nganh == null) {
                 warnings.add(nvKey + ": không tìm thấy ngành " + manganh + ".");
+                nguyenVongRepository.update(nv);
                 continue;
             }
 
             List<NganhToHop> toHops = nganhToHopRepository.findAllByManganh(manganh);
             if (toHops == null || toHops.isEmpty()) {
                 warnings.add(nvKey + ": ngành chưa có tổ hợp xét tuyển.");
+                nguyenVongRepository.update(nv);
                 continue;
             }
 
@@ -91,12 +101,14 @@ public class ThxtCalculationService {
                 diemThi = diemThiRepository.findByCccd(cccd);
                 if (diemThi == null) {
                     warnings.add(nvKey + ": không tìm thấy điểm THPT.");
+                    nguyenVongRepository.update(nv);
                     continue;
                 }
             } else if (isPhuongThuc(phuongthuc, "VSAT")) {
                 List<DiemThiDgnlVsat> listDv = diemThiDgnlVsatRepository.findAllByCccd(cccd);
                 if (listDv == null || listDv.isEmpty()) {
                     warnings.add(nvKey + ": không tìm thấy điểm " + phuongthuc + ".");
+                    nguyenVongRepository.update(nv);
                     continue;
                 }
                 dgnlVsatByMon = indexDiemByMon(listDv);
@@ -104,15 +116,18 @@ public class ThxtCalculationService {
                 List<DiemThiDgnlVsat> listDv = diemThiDgnlVsatRepository.findAllByCccd(cccd);
                 if (listDv == null || listDv.isEmpty()) {
                     warnings.add(nvKey + ": không tìm thấy điểm " + phuongthuc + ".");
+                    nguyenVongRepository.update(nv);
                     continue;
                 }
                 dgnlTotalRaw = findBestDgnlTotal(listDv);
                 if (dgnlTotalRaw == null) {
                     warnings.add(nvKey + ": không xác định được tổng điểm DGNL.");
+                    nguyenVongRepository.update(nv);
                     continue;
                 }
             } else {
                 warnings.add(nvKey + ": phương thức không hợp lệ: " + phuongthuc + ".");
+                nguyenVongRepository.update(nv);
                 continue;
             }
 

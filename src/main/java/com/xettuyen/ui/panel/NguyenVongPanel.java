@@ -2,6 +2,7 @@ package com.xettuyen.ui.panel;
 
 import com.xettuyen.entity.NguyenVong;
 import com.xettuyen.service.impl.NguyenVongService;
+import com.xettuyen.service.impl.XetTuyenService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.service.imports.NguyenVongImportService;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
@@ -10,6 +11,7 @@ import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -78,16 +80,19 @@ public class NguyenVongPanel extends JPanel {
         JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import Excel");
+        JButton btnXetTuyen = new JButton("Xét tuyển");
 
         btnAdd.addActionListener(e -> addNguyenVong());
         btnEdit.addActionListener(e -> updateNguyenVong());
         btnDelete.addActionListener(e -> deleteNguyenVong());
         btnImport.addActionListener(e -> importExcel());
+        btnXetTuyen.addActionListener(e -> runXetTuyen());
 
         btnPanel.add(btnAdd);
         btnPanel.add(btnEdit);
         btnPanel.add(btnDelete);
         btnPanel.add(btnImport);
+        btnPanel.add(btnXetTuyen);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
@@ -105,6 +110,7 @@ public class NguyenVongPanel extends JPanel {
         table.setRowHeight(25);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        applyKetQuaRenderer();
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         paginationPanel = new PaginationPanel();
@@ -382,6 +388,55 @@ public class NguyenVongPanel extends JPanel {
         showCalcWarnings(service.recalculateThxtAll());
 
         loadData();
+    }
+
+    private void runXetTuyen() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Thực hiện xét tuyển và cập nhật kết quả?",
+                "Xác nhận xét tuyển",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        XetTuyenService.Result result = service.runXetTuyenAll();
+        JOptionPane.showMessageDialog(this,
+                "Đã xét tuyển. Đậu: " + result.getAccepted() +
+                ", Rớt: " + result.getRejected() +
+                ", Tổng: " + result.getTotal(),
+                "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+        loadData();
+    }
+
+    private void applyKetQuaRenderer() {
+        int ketQuaColumnIndex = 8;
+        table.getColumnModel().getColumn(ketQuaColumnIndex)
+                .setCellRenderer(new DefaultTableCellRenderer() {
+                    @Override
+                    public Component getTableCellRendererComponent(
+                            JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                        Component comp = super.getTableCellRendererComponent(
+                                table, value, isSelected, hasFocus, row, column);
+
+                        String raw = Objects.toString(value, "").trim();
+                        if ("1".equals(raw)) {
+                            setText("TRÚNG TUYỂN");
+                            if (!isSelected) {
+                                comp.setForeground(new Color(0, 110, 0));
+                            }
+                        } else if ("0".equals(raw)) {
+                            setText("RỚT");
+                            if (!isSelected) {
+                                comp.setForeground(new Color(160, 0, 0));
+                            }
+                        } else {
+                            setText(raw);
+                            if (!isSelected) {
+                                comp.setForeground(table.getForeground());
+                            }
+                        }
+                        return comp;
+                    }
+                });
     }
 
     private void showCalcWarnings(List<String> warnings) {

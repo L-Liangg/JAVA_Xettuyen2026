@@ -67,4 +67,8 @@ public class NguyenVongService {
     public List<String> recalculateThxtAll() {
         return new ThxtCalculationService().recalculateAll();
     }
+
+    public XetTuyenService.Result runXetTuyenAll() {
+        return new XetTuyenService().runXetTuyenAll();
+    }
 }

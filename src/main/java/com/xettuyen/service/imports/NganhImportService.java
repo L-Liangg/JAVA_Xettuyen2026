@@ -107,6 +107,7 @@ public class NganhImportService {
                         case "n_tohopgoc"   -> nganh.setN_tohopgoc(val);
                         case "n_chitieu"    -> nganh.setN_chitieu(Integer.parseInt(val));
                         case "n_diemsan"    -> nganh.setN_diemsan(new BigDecimal(val));
+                        case "n_diemtrungtuyen" -> nganh.setN_diemtrungtuyen(new BigDecimal(val));
                         case "n_tuyenthang" -> nganh.setN_tuyenthang(val);
                         case "n_dgnl"       -> nganh.setN_dgnl(val);
                         case "n_thpt"       -> nganh.setN_thpt(val);

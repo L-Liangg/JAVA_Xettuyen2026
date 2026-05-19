@@ -27,6 +27,7 @@ public class ExcelColumnMapping {
         put("tổ hợp gốc", "n_tohopgoc");
         put("chỉ tiêu", "n_chitieu");
         put("điểm sàn", "n_diemsan");
+        put("điểm trúng tuyển", "n_diemtrungtuyen");
         put("tuyển thẳng", "n_tuyenthang");
         put("đgnl", "n_dgnl");
         put("thpt", "n_thpt");
