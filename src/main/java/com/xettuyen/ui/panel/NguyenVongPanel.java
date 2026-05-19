@@ -549,7 +549,9 @@ public class NguyenVongPanel extends JPanel {
             txtDiemXt.setText("");
             return;
         }
-        txtDiemXt.setText(toText(thxt.add(utqd).add(cong)));
+        BigDecimal sum = thxt.add(utqd).add(cong);
+        BigDecimal capped = sum.min(BigDecimal.valueOf(30));
+        txtDiemXt.setText(toText(capped));
     }
 
     private static String toText(BigDecimal value) {

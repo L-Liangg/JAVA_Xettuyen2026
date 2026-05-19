@@ -512,7 +512,8 @@ public class ThxtCalculationService {
         BigDecimal diemCong = nv.getDiem_cong() == null ? ZERO : nv.getDiem_cong();
         BigDecimal diemUtqd = nv.getDiem_utqd() == null ? ZERO : nv.getDiem_utqd();
         BigDecimal sum = thgxt.add(diemCong).add(diemUtqd);
-        nv.setDiem_xettuyen(sum.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP));
+        BigDecimal capped = sum.min(BigDecimal.valueOf(30));
+        nv.setDiem_xettuyen(capped.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP));
     }
 
     private BigDecimal getDiemDoiTuong(String doiTuong) {

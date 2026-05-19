@@ -54,24 +54,14 @@ public class XetTuyenService {
             chiTieuByMa.put(nganh.getManganh(), safeInt(nganh.getN_chitieu()));
         }
 
-        Map<Integer, Map<String, List<NguyenVong>>> byLevelAndNganh = new HashMap<>();
-        int maxLevel = 0;
+        Map<String, List<NguyenVong>> byCccd = new HashMap<>();
         for (NguyenVong nv : list) {
             nv.setNv_ketqua("0");
-            Integer level = nv.getNv_tt();
-            if (level == null) continue;
-            maxLevel = Math.max(maxLevel, level);
-
-            String manganh = nv.getNv_manganh();
-            if (manganh == null || manganh.isBlank()) continue;
-
-            byLevelAndNganh
-                    .computeIfAbsent(level, k -> new HashMap<>())
-                    .computeIfAbsent(manganh, k -> new ArrayList<>())
-                    .add(nv);
+            String cccd = nv.getNn_cccd();
+            if (cccd == null || cccd.isBlank()) continue;
+            byCccd.computeIfAbsent(cccd, k -> new ArrayList<>()).add(nv);
         }
 
-        Set<String> acceptedCccd = new HashSet<>();
         int accepted = 0;
 
         Comparator<NguyenVong> byScoreDesc = (a, b) -> {
@@ -87,12 +77,34 @@ public class XetTuyenService {
             return ca.compareTo(cb);
         };
 
-        for (int level = 1; level <= maxLevel; level++) {
-            Map<String, List<NguyenVong>> byNganh = byLevelAndNganh.get(level);
-            if (byNganh == null) continue;
+        List<String> sortedCccd = new ArrayList<>(byCccd.keySet());
+        sortedCccd.sort((a, b) -> {
+            BigDecimal maxA = maxDiemXetTuyen(byCccd.get(a));
+            BigDecimal maxB = maxDiemXetTuyen(byCccd.get(b));
+            if (maxA == null && maxB == null) return a.compareTo(b);
+            if (maxA == null) return 1;
+            if (maxB == null) return -1;
+            int cmp = maxB.compareTo(maxA);
+            if (cmp != 0) return cmp;
+            return a.compareTo(b);
+        });
 
-            for (Map.Entry<String, List<NguyenVong>> entry : byNganh.entrySet()) {
-                String manganh = entry.getKey();
+        for (String cccd : sortedCccd) {
+            List<NguyenVong> nvList = byCccd.getOrDefault(cccd, new ArrayList<>());
+            nvList.sort((a, b) -> {
+                Integer ta = a.getNv_tt();
+                Integer tb = b.getNv_tt();
+                if (ta == null && tb == null) return 0;
+                if (ta == null) return 1;
+                if (tb == null) return -1;
+                int cmp = Integer.compare(ta, tb);
+                if (cmp != 0) return cmp;
+                return byScoreDesc.compare(a, b);
+            });
+
+            for (NguyenVong nv : nvList) {
+                String manganh = nv.getNv_manganh();
+                if (manganh == null || manganh.isBlank()) continue;
                 int conLai = chiTieuByMa.getOrDefault(manganh, 0);
                 if (conLai <= 0) continue;
 
@@ -100,29 +112,15 @@ public class XetTuyenService {
                 BigDecimal diemSan = nganh != null ? nganh.getN_diemsan() : null;
                 BigDecimal diemChuan = nganh != null ? nganh.getN_diemtrungtuyen() : null;
 
-                List<NguyenVong> eligible = new ArrayList<>();
-                for (NguyenVong nv : entry.getValue()) {
-                    String cccd = nv.getNn_cccd();
-                    if (cccd == null || acceptedCccd.contains(cccd)) continue;
+                BigDecimal diemXt = nv.getDiem_xettuyen();
+                if (diemXt == null) continue;
+                if (diemSan != null && diemXt.compareTo(diemSan) < 0) continue;
+                if (diemChuan != null && diemXt.compareTo(diemChuan) < 0) continue;
 
-                    BigDecimal diemXt = nv.getDiem_xettuyen();
-                    if (diemXt == null) continue;
-                    if (diemSan != null && diemXt.compareTo(diemSan) < 0) continue;
-                    if (diemChuan != null && diemXt.compareTo(diemChuan) < 0) continue;
-
-                    eligible.add(nv);
-                }
-
-                eligible.sort(byScoreDesc);
-
-                for (NguyenVong nv : eligible) {
-                    if (conLai <= 0) break;
-                    nv.setNv_ketqua("1");
-                    acceptedCccd.add(nv.getNn_cccd());
-                    accepted++;
-                    conLai--;
-                }
-                chiTieuByMa.put(manganh, conLai);
+                nv.setNv_ketqua("1");
+                accepted++;
+                chiTieuByMa.put(manganh, conLai - 1);
+                break;
             }
         }
 
@@ -135,5 +133,18 @@ public class XetTuyenService {
 
     private static int safeInt(Integer value) {
         return value == null ? 0 : Math.max(0, value);
+    }
+
+    private static BigDecimal maxDiemXetTuyen(List<NguyenVong> list) {
+        if (list == null || list.isEmpty()) return null;
+        BigDecimal max = null;
+        for (NguyenVong nv : list) {
+            BigDecimal d = nv.getDiem_xettuyen();
+            if (d == null) continue;
+            if (max == null || d.compareTo(max) > 0) {
+                max = d;
+            }
+        }
+        return max;
     }
 }
