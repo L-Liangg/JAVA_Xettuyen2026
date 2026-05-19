@@ -5,6 +5,7 @@ import com.xettuyen.service.impl.NguyenVongService;
 import com.xettuyen.service.impl.XetTuyenService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.service.imports.NguyenVongImportService;
+import com.xettuyen.ui.dialog.CalculationProgressDialog;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
@@ -153,7 +154,6 @@ public class NguyenVongPanel extends JPanel {
         txtManganhSearch.setText("");
         currentPage = 1;
         paginationPanel.reset();
-        showCalcWarnings(service.recalculateThxtAll());
         loadData();
     }
 
@@ -294,6 +294,30 @@ public class NguyenVongPanel extends JPanel {
             txtKetQua.setText(Objects.toString(existing.getNv_ketqua(), ""));
             txtThm.setText(Objects.toString(existing.getTt_thm(), ""));
         }
+        txtDiemXt.setEditable(false);
+
+        // Tự động tính lại điểm xét tuyển khi thay đổi điểm thi, điểm ưu tiên quy đổi hoặc điểm cộng
+        javax.swing.event.DocumentListener recomputeListener = new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+        };
+
+        txtDiemThxt.getDocument().addDocumentListener(recomputeListener);
+        txtDiemUtqd.getDocument().addDocumentListener(recomputeListener);
+        txtDiemCong.getDocument().addDocumentListener(recomputeListener);
+        updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
         form.add(new JLabel("CCCD:"));
@@ -385,9 +409,16 @@ public class NguyenVongPanel extends JPanel {
                     "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
         }
 
-        showCalcWarnings(service.recalculateThxtAll());
+        showCalcWarnings(recalculateWithLoading());
 
         loadData();
+    }
+
+    private List<String> recalculateWithLoading() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
+        return dialog.startCalculation(() -> service.recalculateThxtAll((percent, status) ->
+                dialog.updateProgress(percent, status)));
     }
 
     private void runXetTuyen() {
@@ -398,13 +429,39 @@ public class NguyenVongPanel extends JPanel {
                 JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        XetTuyenService.Result result = service.runXetTuyenAll();
-        JOptionPane.showMessageDialog(this,
-                "Đã xét tuyển. Đậu: " + result.getAccepted() +
-                ", Rớt: " + result.getRejected() +
-                ", Tổng: " + result.getTotal(),
-                "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
-        loadData();
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
+        dialog.updateProgress(0, "Đang xét tuyển...");
+
+        SwingWorker<XetTuyenService.Result, Void> worker = new SwingWorker<>() {
+            @Override
+            protected XetTuyenService.Result doInBackground() {
+                return service.runXetTuyenAll();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    XetTuyenService.Result result = get();
+                    dialog.updateProgress(100, "Hoàn tất xét tuyển.");
+                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
+                            "Đã xét tuyển. Đậu: " + result.getAccepted() +
+                            ", Rớt: " + result.getRejected() +
+                            ", Tổng: " + result.getTotal(),
+                            "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+                    loadData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
+                            "Có lỗi khi xét tuyển:\n" + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    dialog.dispose();
+                }
+            }
+        };
+
+        worker.execute();
+        dialog.setVisible(true);
     }
 
     private void applyKetQuaRenderer() {
@@ -467,6 +524,32 @@ public class NguyenVongPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
             return null;
         }
+    }
+
+    private static BigDecimal parseDecimalOrZeroSilent(String value) {
+        String trimmed = blankToNull(value);
+        if (trimmed == null) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(trimmed);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static void updateDiemXetTuyenField(
+            JTextField txtDiemThxt,
+            JTextField txtDiemUtqd,
+            JTextField txtDiemCong,
+            JTextField txtDiemXt
+    ) {
+        BigDecimal thxt = parseDecimalOrZeroSilent(txtDiemThxt.getText());
+        BigDecimal utqd = parseDecimalOrZeroSilent(txtDiemUtqd.getText());
+        BigDecimal cong = parseDecimalOrZeroSilent(txtDiemCong.getText());
+        if (thxt == null || utqd == null || cong == null) {
+            txtDiemXt.setText("");
+            return;
+        }
+        txtDiemXt.setText(toText(thxt.add(utqd).add(cong)));
     }
 
     private static String toText(BigDecimal value) {

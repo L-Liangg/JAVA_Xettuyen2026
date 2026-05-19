@@ -3,7 +3,6 @@ package com.xettuyen.service.impl;
 import com.xettuyen.entity.BangQuyDoi;
 import com.xettuyen.entity.DiemThi;
 import com.xettuyen.entity.DiemThiDgnlVsat;
-import com.xettuyen.entity.MapMon;
 import com.xettuyen.entity.Nganh;
 import com.xettuyen.entity.NganhToHop;
 import com.xettuyen.entity.NguyenVong;
@@ -13,7 +12,6 @@ import com.xettuyen.repository.BangQuyDoiRepository;
 import com.xettuyen.repository.DiemCongRepository;
 import com.xettuyen.repository.DiemThiDgnlVsatRepository;
 import com.xettuyen.repository.DiemThiRepository;
-import com.xettuyen.repository.MapMonRepository;
 import com.xettuyen.repository.NganhRepository;
 import com.xettuyen.repository.NganhToHopRepository;
 import com.xettuyen.repository.NguyenVongRepository;
@@ -28,30 +26,54 @@ import java.util.Locale;
 import java.util.Map;
 
 public class ThxtCalculationService {
+    public interface ProgressListener {
+        void onProgress(int percent, String status);
+    }
+
     private static final BigDecimal THREE = BigDecimal.valueOf(3);
     private static final BigDecimal ZERO = BigDecimal.ZERO;
     private static final int SCALE_INTERNAL = 8;
     private static final int SCALE_OUTPUT = 5;
     private static final BigDecimal ZERO_OUTPUT = BigDecimal.ZERO.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP);
+    private static final Map<String, List<String>> THPT_TO_VSAT = Map.of(
+            "TO", List.of("TO_VS", "M1"),
+            "LI", List.of("LI_VS", "M2"),
+            "HO", List.of("HO_VS", "M3"),
+            "VA", List.of("VA_VS"),
+            "N1", List.of("N1_VS", "M8"),
+            "SI", List.of("SI_VS", "M4"),
+            "TI", List.of(),
+            "SU", List.of("SU_VS", "M6"),
+            "DI", List.of("DI_VS", "M7")
+    );
 
     private final NguyenVongRepository nguyenVongRepository = new NguyenVongRepository();
     private final NganhRepository nganhRepository = new NganhRepository();
     private final NganhToHopRepository nganhToHopRepository = new NganhToHopRepository();
     private final DiemThiRepository diemThiRepository = new DiemThiRepository();
     private final DiemThiDgnlVsatRepository diemThiDgnlVsatRepository = new DiemThiDgnlVsatRepository();
-    private final MapMonRepository mapMonRepository = new MapMonRepository();
     private final BangQuyDoiRepository bangQuyDoiRepository = new BangQuyDoiRepository();
     private final ThiSinhRepository thiSinhRepository = new ThiSinhRepository();
     private final DiemCongRepository diemCongRepository = new DiemCongRepository();
 
     public List<String> recalculateAll() {
+        return recalculateAll(null);
+    }
+
+    public List<String> recalculateAll(ProgressListener listener) {
         List<String> warnings = new ArrayList<>();
         List<NguyenVong> list = nguyenVongRepository.findAll();
+        int total = list.size();
 
-        Map<String, List<MapMon>> mapMonByThpt = loadMapMonByThpt();
         Map<String, List<BangQuyDoi>> quyDoiCache = new HashMap<>();
 
+        if (listener != null) {
+            listener.onProgress(0, "Đang tính điểm xét tuyển...");
+        }
+
+        int index = 0;
         for (NguyenVong nv : list) {
+            index++;
             nv.setDiem_thxt(ZERO_OUTPUT);
             nv.setDiem_utqd(ZERO_OUTPUT);
             nv.setDiem_cong(ZERO_OUTPUT);
@@ -142,7 +164,6 @@ public class ThxtCalculationService {
                         diemThi,
                         dgnlVsatByMon,
                         dgnlTotalRaw,
-                        mapMonByThpt,
                         quyDoiCache,
                         warnings,
                         nvKey
@@ -160,6 +181,9 @@ public class ThxtCalculationService {
             if (best == null) {
                 warnings.add(nvKey + ": không tính được điểm THXT cho bất kỳ tổ hợp nào.");
                 nguyenVongRepository.update(nv);
+                if (listener != null && shouldReportProgress(index, total)) {
+                    listener.onProgress(calcPercent(index, total), "Đang tính: " + index + "/" + total);
+                }
                 continue;
             }
 
@@ -168,9 +192,28 @@ public class ThxtCalculationService {
             applyDiemUtqd(nv, bestThxtRaw, warnings, nvKey);
             applyDiemXetTuyen(nv, best);
             nguyenVongRepository.update(nv);
+
+            if (listener != null && shouldReportProgress(index, total)) {
+                listener.onProgress(calcPercent(index, total), "Đang tính: " + index + "/" + total);
+            }
+        }
+
+        if (listener != null) {
+            listener.onProgress(100, "Hoàn thành tính điểm  .");
         }
 
         return warnings;
+    }
+
+    private boolean shouldReportProgress(int index, int total) {
+        if (total <= 0) return true;
+        if (index == total) return true;
+        return index % 100 == 0;
+    }
+
+    private int calcPercent(int index, int total) {
+        if (total <= 0) return 100;
+        return Math.min(100, (int) Math.round(index * 100.0 / total));
     }
 
     private BigDecimal computeThxtForToHop(
@@ -179,7 +222,6 @@ public class ThxtCalculationService {
             DiemThi diemThi,
             Map<String, BigDecimal> dgnlVsatByMon,
             BigDecimal dgnlTotalRaw,
-            Map<String, List<MapMon>> mapMonByThpt,
             Map<String, List<BangQuyDoi>> quyDoiCache,
             List<String> warnings,
             String nvKey
@@ -215,9 +257,9 @@ public class ThxtCalculationService {
         }
 
         if (isPhuongThuc(phuongthuc, "VSAT")) {
-            BigDecimal d1 = getDiemVsatMon(mon1, dgnlVsatByMon, mapMonByThpt, quyDoiCache, warnings, nvKey);
-            BigDecimal d2 = getDiemVsatMon(mon2, dgnlVsatByMon, mapMonByThpt, quyDoiCache, warnings, nvKey);
-            BigDecimal d3 = getDiemVsatMon(mon3, dgnlVsatByMon, mapMonByThpt, quyDoiCache, warnings, nvKey);
+            BigDecimal d1 = getDiemVsatMon(mon1, dgnlVsatByMon, quyDoiCache, warnings, nvKey);
+            BigDecimal d2 = getDiemVsatMon(mon2, dgnlVsatByMon, quyDoiCache, warnings, nvKey);
+            BigDecimal d3 = getDiemVsatMon(mon3, dgnlVsatByMon, quyDoiCache, warnings, nvKey);
             if (d1 == null || d2 == null || d3 == null) return null;
             BigDecimal dt = weightedAverage(d1, d2, d3, hs1, hs2, hs3);
             return dt.multiply(THREE);
@@ -237,17 +279,23 @@ public class ThxtCalculationService {
     private BigDecimal getDiemVsatMon(
             String monThpt,
             Map<String, BigDecimal> dgnlVsatByMon,
-            Map<String, List<MapMon>> mapMonByThpt,
             Map<String, List<BangQuyDoi>> quyDoiCache,
             List<String> warnings,
             String nvKey
     ) {
-        String vsatCode = findVsatCode(monThpt, mapMonByThpt);
-        if (vsatCode == null) {
+        List<String> vsatCodes = findVsatCodes(monThpt);
+        if (vsatCodes == null || vsatCodes.isEmpty()) {
             warnings.add(nvKey + ": chưa khai báo mã VSAT cho môn " + monThpt + ".");
             return null;
         }
-        BigDecimal raw = dgnlVsatByMon.get(vsatCode);
+        BigDecimal raw = null;
+        for (String code : vsatCodes) {
+            BigDecimal value = dgnlVsatByMon.get(code);
+            if (value != null) {
+                raw = value;
+                break;
+            }
+        }
         if (raw == null) {
             warnings.add(nvKey + ": thiếu điểm VSAT môn " + monThpt + ".");
             return null;
@@ -499,28 +547,9 @@ public class ThxtCalculationService {
         return map;
     }
 
-    private Map<String, List<MapMon>> loadMapMonByThpt() {
-        Map<String, List<MapMon>> map = new HashMap<>();
-        for (MapMon mon : mapMonRepository.findAll()) {
-            if (mon.getMon_thpt() == null) continue;
-            String key = mon.getMon_thpt().trim().toUpperCase(Locale.ROOT);
-            map.computeIfAbsent(key, k -> new ArrayList<>()).add(mon);
-        }
-        return map;
-    }
-
-    private String findVsatCode(String monThpt, Map<String, List<MapMon>> mapMonByThpt) {
+    private List<String> findVsatCodes(String monThpt) {
         String key = normalize(monThpt);
-        List<MapMon> list = mapMonByThpt.get(key);
-        if (list == null || list.isEmpty()) return null;
-        String fallback = null;
-        for (MapMon mon : list) {
-            if (mon.getMon_vsat() == null || mon.getMon_vsat().trim().isEmpty()) continue;
-            String code = mon.getMon_vsat().trim().toUpperCase(Locale.ROOT);
-            if (code.endsWith("_VS") || code.contains("_VS")) return code;
-            if (fallback == null) fallback = code;
-        }
-        return fallback;
+        return THPT_TO_VSAT.get(key);
     }
 
     private BigDecimal findBestDgnlTotal(List<DiemThiDgnlVsat> listDv) {

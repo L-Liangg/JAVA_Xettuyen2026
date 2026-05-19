@@ -21,6 +21,5 @@
         <mapping class="com.xettuyen.entity.NguyenVong"/>
         <mapping class="com.xettuyen.entity.DiemCong"/>
         <mapping class="com.xettuyen.entity.BangQuyDoi"/>
-        <mapping class="com.xettuyen.entity.MapMon"/>
     </session-factory>
 </hibernate-configuration>

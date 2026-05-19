@@ -68,6 +68,10 @@ public class NguyenVongService {
         return new ThxtCalculationService().recalculateAll();
     }
 
+    public List<String> recalculateThxtAll(ThxtCalculationService.ProgressListener listener) {
+        return new ThxtCalculationService().recalculateAll(listener);
+    }
+
     public XetTuyenService.Result runXetTuyenAll() {
         return new XetTuyenService().runXetTuyenAll();
     }
