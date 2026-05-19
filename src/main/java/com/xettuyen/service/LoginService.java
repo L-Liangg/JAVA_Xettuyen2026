@@ -1,57 +1,38 @@
 package com.xettuyen.service;
 
-import java.sql.*;
+import com.xettuyen.config.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.query.NativeQuery;
 
 /**
- * LoginService - Direct MySQL Database Authentication
- * 
- * Authenticates user directly from MySQL database (xettuyen2026)
+ * LoginService - Hibernate Database Authentication
+ *
+ * Authenticates user from MySQL database (xettuyen2026) via Hibernate
  * Requirements: role_name must be 'admin' or 'teacher', is_active = 1
- * 
+ *
  * SQL Query:
- *   SELECT * FROM xt_users 
- *   JOIN xt_roles ON xt_users.role_id = xt_roles.idrole 
- *   WHERE username = ? AND password = ? AND is_active = 1
- * 
- * Usage:
- *   LoginService service = new LoginService();
- *   LoginResponse response = service.login("admin", "admin123");
- *   if (response.isSuccess()) {
- *       String username = response.getUsername();
- *       String role = response.getRoleName();
- *   }
+ *   SELECT xu.iduser, xu.username, xu.full_name, xu.email, xu.phone,
+ *          xu.role_id, xu.is_active, xr.idrole, xr.role_name, xr.description
+ *   FROM xt_users xu
+ *   JOIN xt_roles xr ON xu.role_id = xr.idrole
+ *   WHERE xu.username = :username AND xu.password = :password AND xu.is_active = 1
  */
 public class LoginService {
-    
-    // Database configuration
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/xettuyen2026";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "";
-    private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
     
     // Allowed roles for login
     private static final String[] ALLOWED_ROLES = {"admin", "teacher"};
     
     // SQL Query with JOIN
-    private static final String SQL_LOGIN = 
+    private static final String SQL_LOGIN =
         "SELECT xu.iduser, xu.username, xu.full_name, xu.email, xu.phone, " +
         "       xu.role_id, xu.is_active, xr.idrole, xr.role_name, xr.description " +
         "FROM xt_users xu " +
         "JOIN xt_roles xr ON xu.role_id = xr.idrole " +
-        "WHERE xu.username = ? AND xu.password = ? AND xu.is_active = 1";
-    
-    static {
-        // Load MySQL driver
-        try {
-            Class.forName(JDBC_DRIVER);
-        } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver không tìm thấy: " + e.getMessage());
-        }
-    }
+        "WHERE xu.username = :username AND xu.password = :password AND xu.is_active = 1";
     
     /**
-     * Authenticate user with username and password
-     * Connects directly to MySQL database
+    * Authenticate user with username and password
+    * Uses Hibernate session configured in hibernate.cfg.xml
      * 
      * @param username User's username
      * @param password User's password
@@ -66,31 +47,24 @@ public class LoginService {
             return new LoginResponse(false, "Vui lòng nhập mật khẩu");
         }
         
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-        
         try {
-            // Establish database connection
-            connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            
-            // Prepare statement with parameters
-            statement = connection.prepareStatement(SQL_LOGIN);
-            statement.setString(1, username.trim());
-            statement.setString(2, password.trim());
-            
-            // Execute query
-            resultSet = statement.executeQuery();
-            
-            // Check if user exists
-            if (resultSet.next()) {
-                // Extract user data from result set
-                int userId = resultSet.getInt("iduser");
-                String fullName = resultSet.getString("full_name");
-                String email = resultSet.getString("email");
-                String phone = resultSet.getString("phone");
-                String roleName = resultSet.getString("role_name");
-                int isActive = resultSet.getInt("is_active");
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                NativeQuery<?> query = session.createNativeQuery(SQL_LOGIN);
+                query.setParameter("username", username.trim());
+                query.setParameter("password", password.trim());
+
+                Object row = query.uniqueResult();
+                if (row == null) {
+                    return new LoginResponse(false, "Tên đăng nhập hoặc mật khẩu không chính xác");
+                }
+
+                Object[] columns = (Object[]) row;
+                int userId = toInt(columns[0]);
+                String fullName = toStringSafe(columns[2]);
+                String email = toStringSafe(columns[3]);
+                String phone = toStringSafe(columns[4]);
+                String roleName = toStringSafe(columns[8]);
+                int isActive = toInt(columns[6]);
                 
                 // Check if user is active
                 if (isActive == 0) {
@@ -115,40 +89,9 @@ public class LoginService {
                 response.setToken(generateToken(userId));
                 
                 return response;
-            } else {
-                return new LoginResponse(false, "Tên đăng nhập hoặc mật khẩu không chính xác");
             }
-            
-        } catch (SQLException e) {
-            // Handle database connection errors
-            if (e.getMessage().contains("Connection refused") || 
-                e.getMessage().contains("Unknown host")) {
-                return new LoginResponse(false, 
-                    "Không thể kết nối tới cơ sở dữ liệu MySQL.\n" +
-                    "Vui lòng kiểm tra:\n" +
-                    "- XAMPP/MySQL đang chạy\n" +
-                    "- Database 'xettuyen2026' tồn tại\n" +
-                    "- URL: jdbc:mysql://localhost:3306/xettuyen2026");
-            } else if (e.getMessage().contains("Access denied")) {
-                return new LoginResponse(false, 
-                    "Lỗi xác thực cơ sở dữ liệu.\n" +
-                    "Kiểm tra username/password MySQL (root/empty)");
-            } else {
-                return new LoginResponse(false, "Lỗi cơ sở dữ liệu: " + e.getMessage());
-            }
-            
         } catch (Exception e) {
             return new LoginResponse(false, "Lỗi: " + e.getMessage());
-            
-        } finally {
-            // Close resources
-            try {
-                if (resultSet != null) resultSet.close();
-                if (statement != null) statement.close();
-                if (connection != null) connection.close();
-            } catch (SQLException e) {
-                System.err.println("Lỗi đóng kết nối: " + e.getMessage());
-            }
         }
     }
     
@@ -177,6 +120,27 @@ public class LoginService {
      */
     private String generateToken(int userId) {
         return "TOKEN_" + userId + "_" + System.currentTimeMillis();
+    }
+
+    private int toInt(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value ? 1 : 0;
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private String toStringSafe(Object value) {
+        return value == null ? "" : value.toString();
     }
     
     /**

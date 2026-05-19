@@ -1,5 +1,6 @@
 package com.xettuyen.ui;
 
+import com.xettuyen.ui.dialog.LoginDialog;
 import com.xettuyen.ui.panel.*;
 import com.xettuyen.service.LoginService;
 import javax.swing.*;
@@ -10,18 +11,9 @@ public class MainFrame extends JFrame {
     private JPanel contentPanel;
     private CardLayout cardLayout;
     private LoginService.LoginResponse loginResponse;
-    private LogoutCallback logoutCallback;
-    
-    /**
-     * Callback for logout event
-     */
-    public interface LogoutCallback {
-        void onLogout();
-    }
 
-    public MainFrame(LoginService.LoginResponse response, LogoutCallback callback) {
+    public MainFrame(LoginService.LoginResponse response) {
         this.loginResponse = response;
-        this.logoutCallback = callback;
         
         setTitle("Hệ thống Xét tuyển 2026 - " + response.getFullName());
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -114,10 +106,11 @@ public class MainFrame extends JFrame {
                 "Xác nhận",
                 JOptionPane.YES_NO_OPTION);
             if (result == JOptionPane.YES_OPTION) {
-                if (logoutCallback != null) {
-                    logoutCallback.onLogout();
-                }
                 dispose();
+                SwingUtilities.invokeLater(() -> {
+                    LoginDialog dialog = new LoginDialog(null);
+                    dialog.setVisible(true);
+                });
             }
         });
         panel.add(logoutButton);
