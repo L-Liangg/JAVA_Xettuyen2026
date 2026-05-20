@@ -1,5 +1,6 @@
 package com.xettuyen.ui;
 
+import com.xettuyen.repository.LoginRepository;
 import com.xettuyen.ui.dialog.LoginDialog;
 import com.xettuyen.ui.panel.*;
 import com.xettuyen.service.LoginService;
@@ -10,9 +11,9 @@ public class MainFrame extends JFrame {
 
     private JPanel contentPanel;
     private CardLayout cardLayout;
-    private LoginService.LoginResponse loginResponse;
+    private LoginRepository.LoginResponse loginResponse;
 
-    public MainFrame(LoginService.LoginResponse response) {
+    public MainFrame(LoginRepository.LoginResponse response) {
         this.loginResponse = response;
         
         setTitle("Hệ thống Xét tuyển 2026 - " + response.getFullName());

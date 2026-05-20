@@ -1,5 +1,6 @@
 package com.xettuyen.ui.dialog;
 
+import com.xettuyen.repository.LoginRepository;
 import com.xettuyen.service.LoginService;
 import com.xettuyen.ui.MainFrame;
 
@@ -33,9 +34,9 @@ public class LoginDialog extends JDialog {
 
     private String usernamePlaceholder = "Username";
     private String passwordPlaceholder = "Password";
-    
+
     private LoginService loginService;
-    private LoginService.LoginResponse lastLoginResponse;
+    private LoginRepository.LoginResponse lastLoginResponse;
 
     public LoginDialog(Frame owner) {
         super(owner, "Đăng nhập - Hệ thống Xét tuyển 2026", true);
@@ -296,7 +297,7 @@ public class LoginDialog extends JDialog {
         // Call login in separate thread to avoid UI blocking
         new Thread(() -> {
             try {
-                LoginService.LoginResponse response = loginService.login(username, password);
+                LoginRepository.LoginResponse response = loginService.login(username, password);
                 
                 // Update UI in EDT
                 SwingUtilities.invokeLater(() -> {
@@ -340,7 +341,7 @@ public class LoginDialog extends JDialog {
         errorLabel.setText(message);
     }
     
-    public LoginService.LoginResponse getLoginResponse() {
+    public LoginRepository.LoginResponse getLoginResponse() {
         return lastLoginResponse;
     }
 }
