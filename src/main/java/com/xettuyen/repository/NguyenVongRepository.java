@@ -72,4 +72,15 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
                     .uniqueResult();
         }
     }
+
+    public void updateAll(List<NguyenVong> list) {
+        if (list == null || list.isEmpty()) return;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            session.beginTransaction();
+            for (NguyenVong nv : list) {
+                session.merge(nv);
+            }
+            session.getTransaction().commit();
+        }
+    }
 }

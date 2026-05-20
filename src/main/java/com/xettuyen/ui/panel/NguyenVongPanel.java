@@ -2,14 +2,17 @@ package com.xettuyen.ui.panel;
 
 import com.xettuyen.entity.NguyenVong;
 import com.xettuyen.service.impl.NguyenVongService;
+import com.xettuyen.service.impl.XetTuyenService;
 import com.xettuyen.service.imports.ImportResult;
 import com.xettuyen.service.imports.NguyenVongImportService;
+import com.xettuyen.ui.dialog.CalculationProgressDialog;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
 import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -77,16 +80,19 @@ public class NguyenVongPanel extends JPanel {
         JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import Excel");
+        JButton btnXetTuyen = new JButton("Xét tuyển");
 
         btnAdd.addActionListener(e -> addNguyenVong());
         btnEdit.addActionListener(e -> updateNguyenVong());
         btnDelete.addActionListener(e -> deleteNguyenVong());
         btnImport.addActionListener(e -> importExcel());
+        btnXetTuyen.addActionListener(e -> runXetTuyen());
 
         btnPanel.add(btnAdd);
         btnPanel.add(btnEdit);
         btnPanel.add(btnDelete);
         btnPanel.add(btnImport);
+        btnPanel.add(btnXetTuyen);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
@@ -104,6 +110,7 @@ public class NguyenVongPanel extends JPanel {
         table.setRowHeight(25);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        applyKetQuaRenderer();
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         paginationPanel = new PaginationPanel();
@@ -286,6 +293,30 @@ public class NguyenVongPanel extends JPanel {
             txtKetQua.setText(Objects.toString(existing.getNv_ketqua(), ""));
             txtThm.setText(Objects.toString(existing.getTt_thm(), ""));
         }
+        txtDiemXt.setEditable(false);
+
+        // Tự động tính lại điểm xét tuyển khi thay đổi điểm thi, điểm ưu tiên quy đổi hoặc điểm cộng
+        javax.swing.event.DocumentListener recomputeListener = new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
+            }
+        };
+
+        txtDiemThxt.getDocument().addDocumentListener(recomputeListener);
+        txtDiemUtqd.getDocument().addDocumentListener(recomputeListener);
+        txtDiemCong.getDocument().addDocumentListener(recomputeListener);
+        updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
         form.add(new JLabel("CCCD:"));
@@ -377,7 +408,102 @@ public class NguyenVongPanel extends JPanel {
                     "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
         }
 
+        showCalcWarnings(recalculateWithLoading());
+
         loadData();
+    }
+
+    private List<String> recalculateWithLoading() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
+        return dialog.startCalculation(() -> service.recalculateThxtAll((percent, status) ->
+                dialog.updateProgress(percent, status)));
+    }
+
+    private void runXetTuyen() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Thực hiện xét tuyển và cập nhật kết quả?",
+                "Xác nhận xét tuyển",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
+        dialog.updateProgress(0, "Đang xét tuyển...");
+
+        SwingWorker<XetTuyenService.Result, Void> worker = new SwingWorker<>() {
+            @Override
+            protected XetTuyenService.Result doInBackground() {
+                return service.runXetTuyenAll();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    XetTuyenService.Result result = get();
+                    dialog.updateProgress(100, "Hoàn tất xét tuyển.");
+                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
+                            "Đã xét tuyển. Đậu: " + result.getAccepted() +
+                            ", Rớt: " + result.getRejected() +
+                            ", Tổng: " + result.getTotal(),
+                            "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+                    loadData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
+                            "Có lỗi khi xét tuyển:\n" + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    dialog.dispose();
+                }
+            }
+        };
+
+        worker.execute();
+        dialog.setVisible(true);
+    }
+
+    private void applyKetQuaRenderer() {
+        int ketQuaColumnIndex = 8;
+        table.getColumnModel().getColumn(ketQuaColumnIndex)
+                .setCellRenderer(new DefaultTableCellRenderer() {
+                    @Override
+                    public Component getTableCellRendererComponent(
+                            JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                        Component comp = super.getTableCellRendererComponent(
+                                table, value, isSelected, hasFocus, row, column);
+
+                        String raw = Objects.toString(value, "").trim();
+                        if ("1".equals(raw)) {
+                            setText("TRÚNG TUYỂN");
+                            if (!isSelected) {
+                                comp.setForeground(new Color(0, 110, 0));
+                            }
+                        } else if ("0".equals(raw)) {
+                            setText("RỚT");
+                            if (!isSelected) {
+                                comp.setForeground(new Color(160, 0, 0));
+                            }
+                        } else {
+                            setText(raw);
+                            if (!isSelected) {
+                                comp.setForeground(table.getForeground());
+                            }
+                        }
+                        return comp;
+                    }
+                });
+    }
+
+    private void showCalcWarnings(List<String> warnings) {
+        if (warnings == null || warnings.isEmpty()) return;
+        JTextArea textArea = new JTextArea(String.join("\n", warnings));
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        JScrollPane scroll = new JScrollPane(textArea);
+        scroll.setPreferredSize(new Dimension(480, 220));
+        JOptionPane.showMessageDialog(this, scroll,
+                "Cảnh báo tính THXT", JOptionPane.WARNING_MESSAGE);
     }
 
     private static String blankToNull(String value) {
@@ -396,6 +522,34 @@ public class NguyenVongPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
             return null;
         }
+    }
+
+    private static BigDecimal parseDecimalOrZeroSilent(String value) {
+        String trimmed = blankToNull(value);
+        if (trimmed == null) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(trimmed);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static void updateDiemXetTuyenField(
+            JTextField txtDiemThxt,
+            JTextField txtDiemUtqd,
+            JTextField txtDiemCong,
+            JTextField txtDiemXt
+    ) {
+        BigDecimal thxt = parseDecimalOrZeroSilent(txtDiemThxt.getText());
+        BigDecimal utqd = parseDecimalOrZeroSilent(txtDiemUtqd.getText());
+        BigDecimal cong = parseDecimalOrZeroSilent(txtDiemCong.getText());
+        if (thxt == null || utqd == null || cong == null) {
+            txtDiemXt.setText("");
+            return;
+        }
+        BigDecimal sum = thxt.add(utqd).add(cong);
+        BigDecimal capped = sum.min(BigDecimal.valueOf(30));
+        txtDiemXt.setText(toText(capped));
     }
 
     private static String toText(BigDecimal value) {

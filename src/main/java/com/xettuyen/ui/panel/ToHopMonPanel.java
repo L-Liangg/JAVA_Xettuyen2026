@@ -98,6 +98,7 @@ public class ToHopMonPanel extends JPanel {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        // ===== PAGINATION =====
         paginationPanel = new PaginationPanel();
         paginationPanel.setOnPageChange(() -> {
             currentPage = paginationPanel.getCurrentPage();
@@ -140,7 +141,6 @@ public class ToHopMonPanel extends JPanel {
         if (currentPage > totalPages) currentPage = totalPages;
 
         List<ToHopMon> list = service.searchAnd(matohop, currentPage);
-
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);

@@ -47,6 +47,15 @@ public class ThiSinhService {
         repository.delete(thiSinh);
     }
 
+    public int getTotalPagesAnd(String cccd, String sobaodanh) {
+        String c = (cccd == null) ? "" : cccd.trim();
+        String s = (sobaodanh == null) ? "" : sobaodanh.trim();
+        long count = (c.isBlank() && s.isBlank())
+                ? repository.countAll()
+                : repository.countSearchAnd(c, s);
+        return (int) Math.max(1, Math.ceil((double) count / PAGE_SIZE));
+    }
+
     public ThiSinh findByCccd(String cccd) {
         return repository.findByCccd(cccd);
     }

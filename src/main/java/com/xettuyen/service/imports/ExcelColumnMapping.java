@@ -12,6 +12,7 @@ public class ExcelColumnMapping {
         put("tên", "ten");
         put("ngày sinh", "ngay_sinh");
         put("điện thoại", "dien_thoai");
+        put("mật khẩu", "password");
         put("giới tính", "gioi_tinh");
         put("email", "email");
         put("mật khẩu", "mat_khau");
@@ -26,6 +27,7 @@ public class ExcelColumnMapping {
         put("tổ hợp gốc", "n_tohopgoc");
         put("chỉ tiêu", "n_chitieu");
         put("điểm sàn", "n_diemsan");
+        put("điểm trúng tuyển", "n_diemtrungtuyen");
         put("tuyển thẳng", "n_tuyenthang");
         put("đgnl", "n_dgnl");
         put("thpt", "n_thpt");
@@ -113,6 +115,8 @@ public class ExcelColumnMapping {
         put("điểm utxt", "diemUtxt");
         put("điểm tổng", "diemTong");
         put("ghi chú", "ghichu");
+        put("khu vực", "ghichu");
+        put("khu vuc", "ghichu");
     }};
 
     public static final Map<String, String> BANG_QUY_DOI = new LinkedHashMap<>() {{

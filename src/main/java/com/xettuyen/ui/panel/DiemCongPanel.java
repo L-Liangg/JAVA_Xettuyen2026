@@ -9,6 +9,8 @@ import com.xettuyen.ui.util.PaginationPanel;
 import com.xettuyen.ui.util.PlaceholderTextField;
 import com.xettuyen.ui.util.TableHeaders;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -55,7 +57,7 @@ public class DiemCongPanel extends JPanel {
         txtManganhSearch = manganhField;
 
         JButton btnSearch = new JButton("Tìm kiếm");
-        JButton btnReset  = new JButton("Làm mới");
+        JButton btnReset = new JButton("Làm mới");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
@@ -71,8 +73,8 @@ public class DiemCongPanel extends JPanel {
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton btnAdd    = new JButton("Thêm mới");
-        JButton btnEdit   = new JButton("Sửa");
+        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import Excel");
 
@@ -96,12 +98,15 @@ public class DiemCongPanel extends JPanel {
         // ===== TABLE =====
         tableModel = new DefaultTableModel(TableHeaders.DIEM_CONG, 0) {
             @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
         table = new JTable(tableModel);
         table.setRowHeight(25);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        hideDcKeysColumn();
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         paginationPanel = new PaginationPanel();
@@ -247,9 +252,9 @@ public class DiemCongPanel extends JPanel {
 
         int modelRow = table.convertRowIndexToModel(viewRow);
 
-        // Cột cuối cùng trong table là dc_keys
+        int dcKeysCol = tableModel.getColumnCount() - 1;
         String dcKeys = Objects.toString(
-                tableModel.getValueAt(modelRow, 8),
+                tableModel.getValueAt(modelRow, dcKeysCol),
                 ""
         ).trim();
 
@@ -269,14 +274,15 @@ public class DiemCongPanel extends JPanel {
     private DiemCong showForm(DiemCong existing) {
         boolean isEdit = existing != null;
 
-        JTextField txtCccd       = new JTextField(20);
-        JTextField txtManganh    = new JTextField(20);
-        JTextField txtMatohop    = new JTextField(20);
+        JTextField txtCccd = new JTextField(20);
+        JTextField txtManganh = new JTextField(20);
+        JTextField txtMatohop = new JTextField(20);
         JTextField txtPhuongthuc = new JTextField(20);
-        JTextField txtDiemCC     = new JTextField(10);
-        JTextField txtDiemUtxt   = new JTextField(10);
-        JTextField txtDiemTong   = new JTextField(10);
-        JTextField txtGhichu     = new JTextField(30);
+        JTextField txtDiemCC = new JTextField(10);
+        JTextField txtDiemUtxt = new JTextField(10);
+        JTextField txtDiemTong = new JTextField(10);
+        JTextField txtGhichu = new JTextField(30);
+        txtDiemTong.setEditable(false);
 
         if (isEdit) {
             txtCccd.setText(Objects.toString(existing.getTs_cccd(), ""));
@@ -292,6 +298,27 @@ public class DiemCongPanel extends JPanel {
             txtDiemTong.setText(toText(existing.getDiemTong()));
             txtGhichu.setText(Objects.toString(existing.getGhichu(), ""));
         }
+
+        DocumentListener recomputeListener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateDiemTongField(txtDiemCC, txtDiemUtxt, txtDiemTong);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateDiemTongField(txtDiemCC, txtDiemUtxt, txtDiemTong);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateDiemTongField(txtDiemCC, txtDiemUtxt, txtDiemTong);
+            }
+        };
+
+        txtDiemCC.getDocument().addDocumentListener(recomputeListener);
+        txtDiemUtxt.getDocument().addDocumentListener(recomputeListener);
+        updateDiemTongField(txtDiemCC, txtDiemUtxt, txtDiemTong);
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
         form.add(new JLabel("CCCD:"));
@@ -318,9 +345,9 @@ public class DiemCongPanel extends JPanel {
                 JOptionPane.PLAIN_MESSAGE);
         if (option != JOptionPane.OK_OPTION) return null;
 
-        String cccd       = txtCccd.getText().trim();
-        String manganh    = txtManganh.getText().trim();
-        String matohop    = txtMatohop.getText().trim();
+        String cccd = txtCccd.getText().trim();
+        String manganh = txtManganh.getText().trim();
+        String matohop = txtMatohop.getText().trim();
         String phuongthuc = txtPhuongthuc.getText().trim();
 
         if (cccd.isBlank()) {
@@ -334,9 +361,11 @@ public class DiemCongPanel extends JPanel {
         dc.setManganh(blankToNull(manganh));
         dc.setMatohop(blankToNull(matohop));
         dc.setPhuongthuc(blankToNull(phuongthuc));
-        dc.setDiemCC(parseDecimalOrNull(txtDiemCC.getText(), "Điểm CC"));
-        dc.setDiemUtxt(parseDecimalOrNull(txtDiemUtxt.getText(), "Điểm ưu tiên XT"));
-        dc.setDiemTong(parseDecimalOrNull(txtDiemTong.getText(), "Điểm tổng"));
+        BigDecimal diemCC = parseDecimalOrNull(txtDiemCC.getText(), "Điểm CC");
+        BigDecimal diemUtxt = parseDecimalOrNull(txtDiemUtxt.getText(), "Điểm ưu tiên XT");
+        dc.setDiemCC(diemCC);
+        dc.setDiemUtxt(diemUtxt);
+        dc.setDiemTong(computeDiemTong(diemCC, diemUtxt));
         dc.setGhichu(blankToNull(txtGhichu.getText()));
         if (!isEdit) {
             // Xây dc_keys theo convention: cccd_manganh_matohop_phuongthuc
@@ -379,6 +408,15 @@ public class DiemCongPanel extends JPanel {
         return trimmed.isBlank() ? null : trimmed;
     }
 
+    private void hideDcKeysColumn() {
+        int colCount = table.getColumnModel().getColumnCount();
+        if (colCount <= 0) return;
+        int dcKeysCol = colCount - 1;
+        table.getColumnModel().getColumn(dcKeysCol).setMinWidth(0);
+        table.getColumnModel().getColumn(dcKeysCol).setMaxWidth(0);
+        table.getColumnModel().getColumn(dcKeysCol).setPreferredWidth(0);
+    }
+
     private static BigDecimal parseDecimalOrNull(String value, String label) {
         String trimmed = blankToNull(value);
         if (trimmed == null) return null;
@@ -389,6 +427,34 @@ public class DiemCongPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
             return null;
         }
+    }
+
+    private static void updateDiemTongField(JTextField txtDiemCC, JTextField txtDiemUtxt, JTextField txtDiemTong) {
+        BigDecimal diemCC = parseDecimalOrNullSilent(txtDiemCC.getText());
+        BigDecimal diemUtxt = parseDecimalOrNullSilent(txtDiemUtxt.getText());
+        if (diemCC == null || diemUtxt == null) {
+            txtDiemTong.setText("");
+            return;
+        }
+        txtDiemTong.setText(toText(computeDiemTong(diemCC, diemUtxt)));
+    }
+
+    private static BigDecimal parseDecimalOrNullSilent(String value) {
+        String trimmed = blankToNull(value);
+        if (trimmed == null) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(trimmed);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static BigDecimal computeDiemTong(BigDecimal diemCC, BigDecimal diemUtxt) {
+        BigDecimal sum = BigDecimal.ZERO;
+        if (diemCC != null) sum = sum.add(diemCC);
+        if (diemUtxt != null) sum = sum.add(diemUtxt);
+        BigDecimal max = BigDecimal.valueOf(3);
+        return sum.compareTo(max) > 0 ? max : sum;
     }
 
     private static String toText(BigDecimal value) {

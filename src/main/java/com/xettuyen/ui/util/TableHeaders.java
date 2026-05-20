@@ -11,7 +11,7 @@ public class TableHeaders {
 
     public static final String[] DIEM_CONG = {
             "CCCD", "Mã ngành", "Tổ hợp", "Phương thức",
-            "Điểm CC", "Điểm UTXT", "Điểm tổng", "Ghi chú"
+            "Điểm CC", "Điểm UTXT", "Điểm tổng", "Ghi chú", "dc_keys"
     };
 
     public static final String[] DIEM_THI = {

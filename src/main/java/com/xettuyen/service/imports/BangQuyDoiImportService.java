@@ -55,7 +55,6 @@ public class BangQuyDoiImportService {
             Set<String> seenInFile = new HashSet<>();
 
             for (int i = 1; i <= totalRows; i++) {
-
                 if (dialog.isCancelled()) {
                     session.getTransaction().rollback();
                     result = new ImportResult();
@@ -128,7 +127,6 @@ public class BangQuyDoiImportService {
             int validEntriesCount = validEntries.size();
 
             for (int i = 0; i < validEntriesCount; i++) {
-
                 if (dialog.isCancelled()) {
                     session.getTransaction().rollback();
                     result = new ImportResult();

@@ -19,7 +19,8 @@ public class Nganh {
     private String n_dgnl;
     private String n_thpt;
     private String n_vsat;
-    private Integer sl_xtt, sl_dgnl, sl_vsat, sl_thpt;
+    private Integer sl_xtt, sl_dgnl, sl_vsat;
+    private String sl_thpt;
 
     public Integer getIdnganh() {
         return idnganh;
@@ -133,11 +134,11 @@ public class Nganh {
         this.sl_vsat = sl_vsat;
     }
 
-    public Integer getSl_thpt() {
+    public String getSl_thpt() {
         return sl_thpt;
     }
 
-    public void setSl_thpt(Integer sl_thpt) {
+    public void setSl_thpt(String sl_thpt) {
         this.sl_thpt = sl_thpt;
     }
 }
