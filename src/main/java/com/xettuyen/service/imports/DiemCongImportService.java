@@ -4,7 +4,6 @@ import com.xettuyen.config.HibernateUtil;
 import com.xettuyen.entity.DiemCong;
 import com.xettuyen.entity.NganhToHop;
 import com.xettuyen.ui.dialog.ImportProgressDialog;
-import org.apache.commons.math3.util.Pair;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Session;
@@ -13,6 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.xettuyen.service.imports.ExcelImportService.getCellValue;
 
@@ -23,6 +23,9 @@ public class DiemCongImportService {
         ENGLISH_CERT,
         UU_TIEN
     }
+
+    // Batch size tối ưu
+    private static final int BATCH_SIZE = 500;
 
     public ImportResult importFromExcel(File file, ImportProgressDialog dialog) {
         ImportResult result = new ImportResult();
@@ -45,9 +48,9 @@ public class DiemCongImportService {
 
             ImportMode mode = detectMode(colIndex.keySet());
             switch (mode) {
-                case ENGLISH_CERT -> importEnglishCert(sheet, colIndex, totalRows, session, dialog, result);
-                case UU_TIEN -> importUuTien(sheet, colIndex, totalRows, session, dialog, result);
-                default -> importBase(sheet, colIndex, totalRows, session, dialog, result);
+                case ENGLISH_CERT -> importEnglishCertOptimized(sheet, colIndex, totalRows, session, dialog, result);
+                case UU_TIEN -> importUuTienOptimized(sheet, colIndex, totalRows, session, dialog, result);
+                default -> importBaseOptimized(sheet, colIndex, totalRows, session, dialog, result);
             }
 
             if (result.hasErrors()) {
@@ -59,6 +62,7 @@ public class DiemCongImportService {
 
         } catch (Exception e) {
             result.addError(0, "Lỗi đọc file: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return result;
@@ -66,13 +70,15 @@ public class DiemCongImportService {
 
     private static ImportMode detectMode(Set<String> headers) {
         if (headers.contains("chứng chỉ ngoại ngữ")) return ImportMode.ENGLISH_CERT;
-        if (headers.contains("điểm cộng cho môn đạt giải") || headers.contains("điểm cộng cho thxt ko có môn đạt giải")) {
+        if (headers.contains("điểm cộng cho môn đạt giải") || 
+            headers.contains("điểm cộng cho thxt ko có môn đạt giải")) {
             return ImportMode.UU_TIEN;
         }
         return ImportMode.BASE;
     }
 
-    private static void importBase(
+    // ==================== BASE IMPORT TỐI ƯU ====================
+    private static void importBaseOptimized(
             Sheet sheet,
             Map<String, Integer> colIndex,
             int totalRows,
@@ -85,23 +91,25 @@ public class DiemCongImportService {
             return;
         }
 
-        Map<String, Integer> existingMap = new HashMap<>();
-        session.createQuery("SELECT dc_keys, iddiemcong FROM DiemCong", Object[].class)
+        // 1. Load tất cả existing records vào map (CHỈ 1 QUERY)
+        Map<String, DiemCong> existingMap = new HashMap<>();
+        session.createQuery("FROM DiemCong", DiemCong.class)
                 .list()
-                .forEach(row -> existingMap.put((String) row[0], (Integer) row[1]));
+                .forEach(dc -> existingMap.put(dc.getDc_keys(), dc));
 
-        ArrayList<Pair<DiemCong, Boolean>> validEntries = new ArrayList<>();
+        // 2. Đọc và validate dữ liệu từ file
+        List<DiemCong> toInsert = new ArrayList<>();
+        List<DiemCong> toUpdate = new ArrayList<>();
         Set<String> seenInFile = new HashSet<>();
 
         for (int i = 1; i <= totalRows; i++) {
-
             if (dialog.isCancelled()) {
                 result.addError(0, "Import bị hủy bởi người dùng");
                 return;
             }
 
             int percent = (int) ((double) i / Math.max(1, totalRows) * 100);
-            dialog.updateProgress(percent, "Đang duyệt dữ liệu " + i + " / " + totalRows);
+            dialog.updateProgress(percent, "Đang đọc dữ liệu " + i + " / " + totalRows);
 
             Row row = sheet.getRow(i);
             if (row == null) continue;
@@ -119,10 +127,16 @@ public class DiemCongImportService {
             }
 
             String maNganh = getCellValue(row.getCell(colIndex.get("mã ngành")));
-            if (maNganh == null || maNganh.isBlank()) { result.addError(i + 1, "Thiếu mã ngành"); continue; }
+            if (maNganh == null || maNganh.isBlank()) { 
+                result.addError(i + 1, "Thiếu mã ngành"); 
+                continue; 
+            }
 
             String phuongThuc = getCellValue(row.getCell(colIndex.get("phương thức")));
-            if (phuongThuc == null || phuongThuc.isBlank()) { result.addError(i + 1, "Thiếu phương thức"); continue; }
+            if (phuongThuc == null || phuongThuc.isBlank()) { 
+                result.addError(i + 1, "Thiếu phương thức"); 
+                continue; 
+            }
 
             String dcKeys = cccd + "_" + maNganh + "_" + phuongThuc;
 
@@ -132,20 +146,21 @@ public class DiemCongImportService {
             }
             seenInFile.add(dcKeys);
 
-            DiemCong dc = new DiemCong();
-            boolean isNew;
-            if (existingMap.containsKey(dcKeys)) {
-                dc.setIddiemcong(existingMap.get(dcKeys));
-                isNew = false;
+            DiemCong dc = existingMap.get(dcKeys);
+            boolean isNew = (dc == null);
+            if (isNew) {
+                dc = new DiemCong();
+                dc.setDc_keys(dcKeys);
+                toInsert.add(dc);
             } else {
-                isNew = true;
+                toUpdate.add(dc);
             }
 
             dc.setTs_cccd(cccd);
             dc.setManganh(maNganh);
             dc.setPhuongthuc(phuongThuc);
-            dc.setDc_keys(dcKeys);
 
+            // Set các field khác
             for (Map.Entry<String, String> entry : ExcelColumnMapping.DIEM_CONG.entrySet()) {
                 String excelCol = entry.getKey();
                 String fieldName = entry.getValue();
@@ -162,43 +177,16 @@ public class DiemCongImportService {
             }
 
             dc.setDiemTong(computeDiemTong(dc.getDiemCC(), dc.getDiemUtxt()));
-
-            validEntries.add(new Pair<>(dc, isNew));
         }
 
         if (result.hasErrors()) return;
 
-        int validEntriesCount = validEntries.size();
-
-        for (int i = 0; i < validEntriesCount; i++) {
-
-            if (dialog.isCancelled()) {
-                result.addError(0, "Import bị hủy bởi người dùng");
-                return;
-            }
-
-            int percent = (int) ((double) (i + 1) / Math.max(1, validEntriesCount) * 100);
-            dialog.updateProgress(percent, "Đang lưu dữ liệu " + (i + 1) + " / " + validEntriesCount);
-
-            DiemCong dc = validEntries.get(i).getFirst();
-            boolean isNew = validEntries.get(i).getSecond();
-
-            try {
-                if (isNew) session.persist(dc);
-                else session.merge(dc);
-
-                if (i % 50 == 0 && i > 0) {
-                    session.flush();
-                    session.clear();
-                }
-            } catch (Exception e) {
-                result.addError(i + 1, "Hibernate error: " + e.getMessage());
-                return;
-            }
-        }
+        // 3. Batch insert/update
+        batchSaveOrUpdate(session, toInsert, toUpdate, dialog, result);
     }
 
-    private static void importEnglishCert(
+    // ==================== ENGLISH CERT TỐI ƯU ====================
+    private static void importEnglishCertOptimized(
             Sheet sheet,
             Map<String, Integer> colIndex,
             int totalRows,
@@ -211,8 +199,8 @@ public class DiemCongImportService {
             return;
         }
 
+        // 1. Đọc file: lấy điểm cộng lớn nhất cho mỗi CCCD
         Map<String, BigDecimal> maxDiemCc = new HashMap<>();
-
         for (int i = 1; i <= totalRows; i++) {
             if (dialog.isCancelled()) {
                 result.addError(0, "Import bị hủy bởi người dùng");
@@ -235,40 +223,41 @@ public class DiemCongImportService {
             maxDiemCc.merge(cccd, diem, (oldVal, newVal) -> newVal.compareTo(oldVal) > 0 ? newVal : oldVal);
         }
 
-        int processed = 0;
-        for (Map.Entry<String, BigDecimal> entry : maxDiemCc.entrySet()) {
-            if (dialog.isCancelled()) {
-                result.addError(0, "Import bị hủy bởi người dùng");
-                return;
-            }
+        if (maxDiemCc.isEmpty()) return;
 
+        // 2. Lấy TẤT CẢ DiemCong cần cập nhật trong 1 query (QUAN TRỌNG)
+        Set<String> cccdSet = maxDiemCc.keySet();
+        List<DiemCong> allDiemCong = session.createQuery(
+                        "FROM DiemCong d WHERE d.ts_cccd IN (:cccds)", DiemCong.class)
+                .setParameterList("cccds", cccdSet)
+                .list();
+
+        // 3. Map CCCD -> DiemCong để dễ xử lý
+        Map<String, List<DiemCong>> diemCongByCccd = allDiemCong.stream()
+                .collect(Collectors.groupingBy(DiemCong::getTs_cccd));
+
+        // 4. Cập nhật trong memory
+        List<DiemCong> toUpdate = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> entry : maxDiemCc.entrySet()) {
             String cccd = entry.getKey();
             BigDecimal diemCC = entry.getValue();
-
-            List<DiemCong> rows = session.createQuery(
-                            "FROM DiemCong d WHERE d.ts_cccd = :cccd",
-                            DiemCong.class)
-                    .setParameter("cccd", cccd)
-                    .list();
-
-            for (DiemCong dc : rows) {
-                dc.setDiemCC(diemCC);
-                dc.setDiemTong(computeDiemTong(diemCC, dc.getDiemUtxt()));
-                session.merge(dc);
-            }
-
-            processed++;
-            int percent = (int) ((double) processed / Math.max(1, maxDiemCc.size()) * 100);
-            dialog.updateProgress(percent, "Đang cập nhật điểm CC " + processed + " / " + maxDiemCc.size());
-
-            if (processed % 50 == 0) {
-                session.flush();
-                session.clear();
+            
+            List<DiemCong> list = diemCongByCccd.get(cccd);
+            if (list != null) {
+                for (DiemCong dc : list) {
+                    dc.setDiemCC(diemCC);
+                    dc.setDiemTong(computeDiemTong(diemCC, dc.getDiemUtxt()));
+                    toUpdate.add(dc);
+                }
             }
         }
+
+        // 5. Batch update
+        batchUpdateOnly(session, toUpdate, dialog, maxDiemCc.size());
     }
 
-    private static void importUuTien(
+    // ==================== UU TIEN TỐI ƯU ====================
+    private static void importUuTienOptimized(
             Sheet sheet,
             Map<String, Integer> colIndex,
             int totalRows,
@@ -284,6 +273,7 @@ public class DiemCongImportService {
             return;
         }
 
+        // 1. Đọc file: lấy điểm ưu tiên cho mỗi CCCD và môn
         Map<String, BigDecimal> maxNoMon = new HashMap<>();
         Map<String, Map<String, BigDecimal>> maxMonByCccd = new HashMap<>();
 
@@ -317,6 +307,7 @@ public class DiemCongImportService {
             }
         }
 
+        // 2. Lấy mapping môn học theo ngành (1 query)
         Map<String, Set<String>> monByNganh = new HashMap<>();
         session.createQuery("FROM NganhToHop", NganhToHop.class)
                 .list()
@@ -329,48 +320,114 @@ public class DiemCongImportService {
                     addMon(monByNganh.get(manganh), row.getTh_mon3());
                 });
 
+        // 3. Lấy TẤT CẢ DiemCong cần cập nhật trong 1 query
+        Set<String> allCccd = new HashSet<>();
+        allCccd.addAll(maxNoMon.keySet());
+        allCccd.addAll(maxMonByCccd.keySet());
+        
+        if (allCccd.isEmpty()) return;
+
+        List<DiemCong> allDiemCong = session.createQuery(
+                        "FROM DiemCong d WHERE d.ts_cccd IN (:cccds)", DiemCong.class)
+                .setParameterList("cccds", allCccd)
+                .list();
+
+        // 4. Cập nhật trong memory
+        List<DiemCong> toUpdate = new ArrayList<>();
+        for (DiemCong dc : allDiemCong) {
+            String cccd = dc.getTs_cccd();
+            Set<String> subjects = monByNganh.getOrDefault(dc.getManganh(), Collections.emptySet());
+            
+            BigDecimal best = null;
+            Map<String, BigDecimal> monMap = maxMonByCccd.getOrDefault(cccd, Collections.emptyMap());
+            
+            for (String sub : subjects) {
+                BigDecimal val = monMap.get(sub);
+                if (val != null && (best == null || val.compareTo(best) > 0)) {
+                    best = val;
+                }
+            }
+            
+            if (best == null) best = maxNoMon.get(cccd);
+            if (best == null) continue;
+
+            dc.setDiemUtxt(best);
+            dc.setDiemTong(computeDiemTong(dc.getDiemCC(), best));
+            toUpdate.add(dc);
+        }
+
+        // 5. Batch update
+        batchUpdateOnly(session, toUpdate, dialog, allCccd.size());
+    }
+
+    // ==================== BATCH UTILITIES ====================
+    
+    private static void batchSaveOrUpdate(Session session, List<DiemCong> toInsert, List<DiemCong> toUpdate, 
+                                          ImportProgressDialog dialog, ImportResult result) {
+        int total = toInsert.size() + toUpdate.size();
         int processed = 0;
-        for (String cccd : unionKeys(maxNoMon.keySet(), maxMonByCccd.keySet())) {
+        
+        // Insert
+        for (int i = 0; i < toInsert.size(); i++) {
             if (dialog.isCancelled()) {
                 result.addError(0, "Import bị hủy bởi người dùng");
                 return;
             }
-
-            List<DiemCong> rows = session.createQuery(
-                            "FROM DiemCong d WHERE d.ts_cccd = :cccd",
-                            DiemCong.class)
-                    .setParameter("cccd", cccd)
-                    .list();
-
-            Map<String, BigDecimal> monMap = maxMonByCccd.getOrDefault(cccd, Collections.emptyMap());
-            BigDecimal fallback = maxNoMon.get(cccd);
-
-            for (DiemCong dc : rows) {
-                Set<String> subjects = monByNganh.getOrDefault(dc.getManganh(), Collections.emptySet());
-                BigDecimal best = null;
-                for (String sub : subjects) {
-                    BigDecimal val = monMap.get(sub);
-                    if (val != null && (best == null || val.compareTo(best) > 0)) best = val;
-                }
-                if (best == null) best = fallback;
-                if (best == null) continue;
-
-                dc.setDiemUtxt(best);
-                dc.setDiemTong(computeDiemTong(dc.getDiemCC(), best));
-                session.merge(dc);
-            }
-
+            session.persist(toInsert.get(i));
             processed++;
-            int percent = (int) ((double) processed / Math.max(1, maxNoMon.size() + maxMonByCccd.size()) * 100);
-            dialog.updateProgress(percent, "Đang cập nhật điểm ưu tiên " + processed);
-
-            if (processed % 50 == 0) {
+            
+            if (processed % BATCH_SIZE == 0) {
                 session.flush();
                 session.clear();
+                int percent = (int) ((double) processed / total * 100);
+                dialog.updateProgress(percent, "Đang lưu " + processed + " / " + total);
             }
         }
+        
+        // Update
+        for (int i = 0; i < toUpdate.size(); i++) {
+            if (dialog.isCancelled()) {
+                result.addError(0, "Import bị hủy bởi người dùng");
+                return;
+            }
+            session.merge(toUpdate.get(i));
+            processed++;
+            
+            if (processed % BATCH_SIZE == 0) {
+                session.flush();
+                session.clear();
+                int percent = (int) ((double) processed / total * 100);
+                dialog.updateProgress(percent, "Đang lưu " + processed + " / " + total);
+            }
+        }
+        
+        // Final flush
+        session.flush();
+        session.clear();
+    }
+    
+    private static void batchUpdateOnly(Session session, List<DiemCong> toUpdate, 
+                                        ImportProgressDialog dialog, int totalEstimate) {
+        int total = toUpdate.size();
+        for (int i = 0; i < total; i++) {
+            if (dialog.isCancelled()) return;
+            
+            session.merge(toUpdate.get(i));
+            
+            if ((i + 1) % BATCH_SIZE == 0) {
+                session.flush();
+                session.clear();
+                int percent = (int) ((double) (i + 1) / totalEstimate * 100);
+                dialog.updateProgress(percent, "Đang cập nhật " + (i + 1) + " / " + total);
+            }
+        }
+        
+        session.flush();
+        session.clear();
     }
 
+    // ==================== HELPER METHODS ====================
+    
     private static void addMon(Set<String> set, String mon) {
         String value = normalizeSubject(mon);
         if (value != null && !value.isBlank()) set.add(value);
@@ -379,12 +436,6 @@ public class DiemCongImportService {
     private static String normalizeSubject(String mon) {
         if (mon == null) return null;
         return mon.trim().toUpperCase();
-    }
-
-    private static Set<String> unionKeys(Set<String> a, Set<String> b) {
-        Set<String> out = new HashSet<>(a);
-        out.addAll(b);
-        return out;
     }
 
     private static BigDecimal parseDecimal(String value) {

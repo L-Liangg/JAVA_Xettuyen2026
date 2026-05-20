@@ -10,7 +10,7 @@ public class CalculationProgressDialog extends JDialog {
 
     private final JProgressBar progressBar;
     private final JLabel lblStatus;
-    private List<String> result;
+    private Object result;
 
     public CalculationProgressDialog(JFrame parent) {
         super(parent, "Đang tính điểm", true);
@@ -35,11 +35,11 @@ public class CalculationProgressDialog extends JDialog {
         setContentPane(panel);
     }
 
-    public List<String> startCalculation(Callable<List<String>> task) {
+    public <T> T startTask(Callable<T> task) {
         progressBar.setValue(0);
-        SwingWorker<List<String>, Void> worker = new SwingWorker<>() {
+        SwingWorker<T, Void> worker = new SwingWorker<>() {
             @Override
-            protected List<String> doInBackground() throws Exception {
+            protected T doInBackground() throws Exception {
                 return task.call();
             }
 
@@ -48,15 +48,19 @@ public class CalculationProgressDialog extends JDialog {
                 try {
                     result = get();
                 } catch (Exception ex) {
-                    result = new ArrayList<>();
-                    result.add("Tinh diem that bai: " + ex.getMessage());
+                    result = null;
                 }
                 dispose();
             }
         };
         worker.execute();
         setVisible(true);
-        return result == null ? new ArrayList<>() : result;
+        return (T) result;
+    }
+
+    public List<String> startCalculation(Callable<List<String>> task) {
+        List<String> data = startTask(task);
+        return data == null ? new ArrayList<>() : data;
     }
 
     public void updateProgress(int percent, String status) {

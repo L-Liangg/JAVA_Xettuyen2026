@@ -75,4 +75,8 @@ public class NguyenVongService {
     public XetTuyenService.Result runXetTuyenAll() {
         return new XetTuyenService().runXetTuyenAll();
     }
+
+    public XetTuyenService.Result runXetTuyenAll(XetTuyenService.ProgressListener listener) {
+        return new XetTuyenService().runXetTuyenAll(listener);
+    }
 }

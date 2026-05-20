@@ -83,4 +83,61 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
             session.getTransaction().commit();
         }
     }
+
+    public void batchUpdate(List<NguyenVong> list) {
+    if (list == null || list.isEmpty()) return;
+    
+    String hql = "UPDATE NguyenVong n SET " +
+                 "n.diem_thxt = :diemThxt, " +
+                 "n.diem_utqd = :diemUtqd, " +
+                 "n.diem_cong = :diemCong, " +
+                 "n.diem_xettuyen = :diemXetTuyen, " +
+                 "n.tt_thm = :ttThm, " +
+                 "n.nv_ketqua = :nvKetqua, " +
+                 "n.nv_keys = :nvKeys " +
+                 "WHERE n.id = :id";
+    
+    Session session = null;
+    try {
+        session = HibernateUtil.getSessionFactory().openSession();
+        session.beginTransaction();
+        
+        int batchSize = 100;
+        int count = 0;
+        
+        for (NguyenVong nv : list) {
+            // Sử dụng createMutationQuery cho UPDATE/DELETE (Hibernate 6+)
+            var query = session.createMutationQuery(hql);
+            query.setParameter("diemThxt", nv.getDiem_thxt());
+            query.setParameter("diemUtqd", nv.getDiem_utqd());
+            query.setParameter("diemCong", nv.getDiem_cong());
+            query.setParameter("diemXetTuyen", nv.getDiem_xettuyen());
+            query.setParameter("ttThm", nv.getTt_thm());
+            query.setParameter("nvKetqua", nv.getNv_ketqua());
+            query.setParameter("nvKeys", nv.getNv_keys());
+            query.setParameter("id", nv.getIdnv());
+            
+            query.executeUpdate();
+            count++;
+            
+            if (count % batchSize == 0) {
+                session.flush();
+                session.clear();
+            }
+        }
+        
+        session.getTransaction().commit();
+        
+    } catch (Exception e) {
+        if (session != null && session.getTransaction() != null) {
+            session.getTransaction().rollback();
+        }
+        e.printStackTrace();
+        throw new RuntimeException("Batch update failed: " + e.getMessage(), e);
+    } finally {
+        if (session != null) {
+            session.close();
+        }
+    }
+}
 }
