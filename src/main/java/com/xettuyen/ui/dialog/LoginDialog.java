@@ -207,7 +207,7 @@ public class LoginDialog extends JDialog {
         // Enter key to login
         usernameField.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) performLogin();
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) passwordField.requestFocus();
             }
         });
         passwordField.addKeyListener(new KeyAdapter() {
@@ -304,19 +304,9 @@ public class LoginDialog extends JDialog {
                     loginButton.setEnabled(true);
                     closeButton.setEnabled(true);
                     loadingLabel.setText("");
-                    
+
                     if (response.isSuccess()) {
                         lastLoginResponse = response;
-                        String fullName = response.getFullName();
-                        String welcomeMsg = fullName != null && !fullName.isEmpty() 
-                            ? "Đăng nhập thành công!\nChào " + fullName 
-                            : "Đăng nhập thành công!\nChào " + response.getUsername();
-                        
-                        JOptionPane.showMessageDialog(this,
-                            welcomeMsg,
-                            "Thành công",
-                            JOptionPane.INFORMATION_MESSAGE);
-
                         MainFrame mainFrame = new MainFrame(response);
                         mainFrame.setVisible(true);
                         dispose();

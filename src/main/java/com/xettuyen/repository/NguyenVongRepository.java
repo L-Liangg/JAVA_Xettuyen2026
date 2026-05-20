@@ -38,42 +38,48 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
     }
 
     // AND search: cccd AND manganh
-    public List<NguyenVong> searchAnd(String cccd, String manganh, String ketqua, int page, int pageSize) {
+    public List<NguyenVong> searchAnd(String cccd, String manganh, String ketqua, String phuongthuc, int page, int pageSize) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             String hql = """
-                FROM NguyenVong n
-                WHERE (:cccd = ''    OR n.nn_cccd    LIKE :cccdKw)
-                  AND (:manganh = '' OR n.nv_manganh LIKE :manganhKw)
-                  AND (:ketqua = ''  OR n.nv_ketqua  LIKE :ketquaKw)
-                """;
+            FROM NguyenVong n
+            WHERE (:cccd = ''       OR n.nn_cccd       LIKE :cccdKw)
+              AND (:manganh = ''    OR n.nv_manganh    LIKE :manganhKw)
+              AND (:ketqua = ''     OR n.nv_ketqua     LIKE :ketquaKw)
+              AND (:phuongthuc = '' OR n.tt_phuongthuc LIKE :phuongthucKw)
+            """;
             return session.createQuery(hql, NguyenVong.class)
-                    .setParameter("cccd",      cccd)
-                    .setParameter("cccdKw",    "%" + cccd    + "%")
-                    .setParameter("manganh",   manganh)
-                    .setParameter("manganhKw", "%" + manganh + "%")
-                    .setParameter("ketqua",    ketqua)
-                    .setParameter("ketquaKw",  "%" + ketqua  + "%")
+                    .setParameter("cccd",          cccd)
+                    .setParameter("cccdKw",        "%" + cccd + "%")
+                    .setParameter("manganh",       manganh)
+                    .setParameter("manganhKw",     "%" + manganh + "%")
+                    .setParameter("ketqua",        ketqua)
+                    .setParameter("ketquaKw",      "%" + ketqua + "%")
+                    .setParameter("phuongthuc",    phuongthuc)
+                    .setParameter("phuongthucKw",  "%" + phuongthuc + "%")
                     .setFirstResult((page - 1) * pageSize)
                     .setMaxResults(pageSize)
                     .list();
         }
     }
 
-    public long countSearchAnd(String cccd, String manganh, String ketqua) {
+    public long countSearchAnd(String cccd, String manganh, String ketqua, String phuongthuc) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             String hql = """
-                SELECT COUNT(n) FROM NguyenVong n
-                WHERE (:cccd = ''    OR n.nn_cccd    LIKE :cccdKw)
-                  AND (:manganh = '' OR n.nv_manganh LIKE :manganhKw)
-                  AND (:ketqua = ''  OR n.nv_ketqua  LIKE :ketquaKw)
-                """;
+            SELECT COUNT(n) FROM NguyenVong n
+            WHERE (:cccd = ''       OR n.nn_cccd       LIKE :cccdKw)
+              AND (:manganh = ''    OR n.nv_manganh    LIKE :manganhKw)
+              AND (:ketqua = ''     OR n.nv_ketqua     LIKE :ketquaKw)
+              AND (:phuongthuc = '' OR n.tt_phuongthuc LIKE :phuongthucKw)
+            """;
             return session.createQuery(hql, Long.class)
-                    .setParameter("cccd",      cccd)
-                    .setParameter("cccdKw",    "%" + cccd    + "%")
-                    .setParameter("manganh",   manganh)
-                    .setParameter("manganhKw", "%" + manganh + "%")
-                    .setParameter("ketqua",    ketqua)
-                    .setParameter("ketquaKw",  "%" + ketqua  + "%")
+                    .setParameter("cccd",          cccd)
+                    .setParameter("cccdKw",        "%" + cccd + "%")
+                    .setParameter("manganh",       manganh)
+                    .setParameter("manganhKw",     "%" + manganh + "%")
+                    .setParameter("ketqua",        ketqua)
+                    .setParameter("ketquaKw",      "%" + ketqua + "%")
+                    .setParameter("phuongthuc",    phuongthuc)
+                    .setParameter("phuongthucKw",  "%" + phuongthuc + "%")
                     .uniqueResult();
         }
     }
@@ -99,7 +105,7 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
 
     public void batchUpdate(List<NguyenVong> list) {
     if (list == null || list.isEmpty()) return;
-    
+
     String hql = "UPDATE NguyenVong n SET " +
                  "n.diem_thxt = :diemThxt, " +
                  "n.diem_utqd = :diemUtqd, " +
@@ -109,15 +115,15 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
                  "n.nv_ketqua = :nvKetqua, " +
                  "n.nv_keys = :nvKeys " +
                  "WHERE n.id = :id";
-    
+
     Session session = null;
     try {
         session = HibernateUtil.getSessionFactory().openSession();
         session.beginTransaction();
-        
+
         int batchSize = 100;
         int count = 0;
-        
+
         for (NguyenVong nv : list) {
             // Sử dụng createMutationQuery cho UPDATE/DELETE (Hibernate 6+)
             var query = session.createMutationQuery(hql);
@@ -129,18 +135,18 @@ public class NguyenVongRepository extends BaseRepository<NguyenVong> {
             query.setParameter("nvKetqua", nv.getNv_ketqua());
             query.setParameter("nvKeys", nv.getNv_keys());
             query.setParameter("id", nv.getIdnv());
-            
+
             query.executeUpdate();
             count++;
-            
+
             if (count % batchSize == 0) {
                 session.flush();
                 session.clear();
             }
         }
-        
+
         session.getTransaction().commit();
-        
+
     } catch (Exception e) {
         if (session != null && session.getTransaction() != null) {
             session.getTransaction().rollback();

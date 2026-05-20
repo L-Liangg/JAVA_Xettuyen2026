@@ -30,6 +30,7 @@ public class NguyenVongPanel extends JPanel {
     private JTextField txtCccdSearch;
     private JTextField txtManganhSearch;
     private JComboBox<String> cboKetqua;
+    private JComboBox<String> cboPhuongThuc;
 
     public NguyenVongPanel() {
         setLayout(new BorderLayout(10, 10));
@@ -45,12 +46,17 @@ public class NguyenVongPanel extends JPanel {
         JLabel title = new JLabel("QUẢN LÝ NGUYỆN VỌNG");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 0));
         topPanel.add(title);
 
         JPanel actionPanel = new JPanel(new BorderLayout());
         actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+// ---- SEARCH PANEL ----
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+        gbc.anchor = GridBagConstraints.WEST;
 
         PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 10);
         cccdField.setPlaceholderColor(Color.GRAY);
@@ -63,6 +69,10 @@ public class NguyenVongPanel extends JPanel {
         String[] ketquaOptions = {"", "Trúng tuyển", "Rớt"};
         cboKetqua = new JComboBox<>(ketquaOptions);
 
+        String[] phuongthucOptions = {"", "THPT", "ĐGNL", "VSAT"};
+        cboPhuongThuc = new JComboBox<>(phuongthucOptions);
+        cboPhuongThuc.addActionListener(e -> search());
+
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
 
@@ -72,21 +82,53 @@ public class NguyenVongPanel extends JPanel {
         txtManganhSearch.addActionListener(e -> search());
         cboKetqua.addActionListener(e -> search());
 
-        searchPanel.add(new JLabel("CCCD:"));
-        searchPanel.add(txtCccdSearch);
-        searchPanel.add(new JLabel("Mã ngành:"));
-        searchPanel.add(txtManganhSearch);
-        searchPanel.add(new JLabel("Kết quả:"));
-        searchPanel.add(cboKetqua);
-        searchPanel.add(btnSearch);
-        searchPanel.add(btnReset);
+// Hàng 0: Labels
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.NONE;
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        gbc.gridx = 0; searchPanel.add(new JLabel("CCCD:"), gbc);
+        gbc.gridx = 1; searchPanel.add(new JLabel("Mã ngành:"), gbc);
+        gbc.gridx = 2; searchPanel.add(new JLabel("Kết quả:"), gbc);
+        gbc.gridx = 3; searchPanel.add(new JLabel("Phương thức:"), gbc);
 
-        JButton btnAdd    = new JButton("Thêm");
-        JButton btnEdit   = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import");
+// Hàng 1: Inputs + Buttons
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; searchPanel.add(txtCccdSearch, gbc);
+        gbc.gridx = 1; searchPanel.add(txtManganhSearch, gbc);
+        gbc.gridx = 2; searchPanel.add(cboKetqua, gbc);
+        gbc.gridx = 3; searchPanel.add(cboPhuongThuc, gbc);
+
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 4; searchPanel.add(btnSearch, gbc);
+        gbc.gridx = 5; searchPanel.add(btnReset, gbc);
+
+// ---- BTN PANEL ----
+        // ---- BTN PANEL ----
+        JPanel btnPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcBtn = new GridBagConstraints();
+        gbcBtn.insets = new Insets(2, 3, 2, 3);
+        gbcBtn.anchor = GridBagConstraints.EAST;
+
+// Hàng 0: placeholder cao bằng label của searchPanel
+        gbcBtn.gridy = 0;
+        gbcBtn.gridx = 0;
+        gbcBtn.gridwidth = 5;
+        gbcBtn.fill = GridBagConstraints.BOTH;
+        JLabel placeholder = new JLabel(" ");
+        placeholder.setPreferredSize(new Dimension(0, new JLabel("CCCD:").getPreferredSize().height));
+        btnPanel.add(placeholder, gbcBtn);
+
+// Hàng 1: các nút
+        gbcBtn.gridy = 1;
+        gbcBtn.gridwidth = 1;
+        gbcBtn.fill = GridBagConstraints.NONE;
+
+        JButton btnAdd      = new JButton("Thêm");
+        JButton btnEdit     = new JButton("Sửa");
+        JButton btnDelete   = new JButton("Xóa");
+        JButton btnImport   = new JButton("Import");
         JButton btnXetTuyen = new JButton("Xét tuyển");
 
         btnAdd.addActionListener(e -> addNguyenVong());
@@ -95,19 +137,17 @@ public class NguyenVongPanel extends JPanel {
         btnImport.addActionListener(e -> importExcel());
         btnXetTuyen.addActionListener(e -> runXetTuyen());
 
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnEdit);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnImport);
-        btnPanel.add(btnXetTuyen);
+        gbcBtn.gridx = 0; btnPanel.add(btnAdd, gbcBtn);
+        gbcBtn.gridx = 1; btnPanel.add(btnEdit, gbcBtn);
+        gbcBtn.gridx = 2; btnPanel.add(btnDelete, gbcBtn);
+        gbcBtn.gridx = 3; btnPanel.add(btnImport, gbcBtn);
+        gbcBtn.gridx = 4; btnPanel.add(btnXetTuyen, gbcBtn);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
 
         topPanel.add(actionPanel);
-
         add(topPanel, BorderLayout.NORTH);
-
         // ===== TABLE =====
         tableModel = new DefaultTableModel(TableHeaders.NGUYEN_VONG, 0) {
             @Override
@@ -132,10 +172,11 @@ public class NguyenVongPanel extends JPanel {
         String cccd = txtCccdSearch != null ? txtCccdSearch.getText().trim() : "";
         String manganh = txtManganhSearch != null ? txtManganhSearch.getText().trim() : "";
         String ketqua = Objects.equals(cboKetqua.getSelectedItem(), "Trúng tuyển") ? "1" : Objects.equals((String) cboKetqua.getSelectedItem(), "Rớt") ? "0" : "";
-        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, manganh, ketqua));
+        String phuongthuc = Objects.toString(cboPhuongThuc.getSelectedItem(), "").trim();
+        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, manganh, ketqua, phuongthuc));
         if (currentPage > totalPages) currentPage = totalPages;
 
-        List<NguyenVong> list = service.searchAnd(cccd, manganh, ketqua, currentPage);
+        List<NguyenVong> list = service.searchAnd(cccd, manganh, ketqua, phuongthuc, currentPage);
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);
@@ -159,6 +200,8 @@ public class NguyenVongPanel extends JPanel {
     private void reset() {
         txtCccdSearch.setText("");
         txtManganhSearch.setText("");
+        cboKetqua.setSelectedIndex(0);
+        cboPhuongThuc.setSelectedIndex(0);
         currentPage = 1;
         paginationPanel.reset();
         // JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);

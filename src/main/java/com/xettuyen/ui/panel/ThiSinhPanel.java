@@ -41,12 +41,17 @@ public class ThiSinhPanel extends JPanel {
         JLabel title = new JLabel("QUẢN LÝ THÍ SINH");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 0));
         topPanel.add(title);
 
         JPanel actionPanel = new JPanel(new BorderLayout());
         actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+// ---- SEARCH PANEL ----
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+        gbc.anchor = GridBagConstraints.WEST;
 
         PlaceholderTextField searchField = new PlaceholderTextField("Họ tên, cccd, số báo danh", 20);
         searchField.setPlaceholderColor(Color.GRAY);
@@ -59,40 +64,65 @@ public class ThiSinhPanel extends JPanel {
         btnReset.addActionListener(e -> reset());
         txtSearchKeyword.addActionListener(e -> search());
 
-        searchPanel.add(txtSearchKeyword);
-        searchPanel.add(btnSearch);
-        searchPanel.add(btnReset);
+// Hàng 0: Labels
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 0; searchPanel.add(new JLabel("Tìm kiếm:"), gbc);
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+// Hàng 1: Inputs + Buttons
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0; searchPanel.add(txtSearchKeyword, gbc);
 
-        JButton btnStats = new JButton("Thống kê");
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 1; searchPanel.add(btnSearch, gbc);
+        gbc.gridx = 2; searchPanel.add(btnReset, gbc);
 
-        JButton btnAdd = new JButton("Thêm");
-        JButton btnEdit = new JButton("Sửa");
-        JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import");
+// ---- BTN PANEL ----
+        JPanel btnPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcBtn = new GridBagConstraints();
+        gbcBtn.insets = new Insets(2, 3, 2, 3);
+        gbcBtn.anchor = GridBagConstraints.EAST;
+
+// Hàng 0: placeholder cao bằng label của searchPanel
+        gbcBtn.gridy = 0;
+        gbcBtn.gridx = 0;
+        gbcBtn.gridwidth = 5;
+        gbcBtn.fill = GridBagConstraints.BOTH;
+        JLabel placeholder = new JLabel(" ");
+        placeholder.setPreferredSize(new Dimension(0, new JLabel("Tìm kiếm:").getPreferredSize().height));
+        btnPanel.add(placeholder, gbcBtn);
+
+// Hàng 1: các nút
+        gbcBtn.gridy = 1;
+        gbcBtn.gridwidth = 1;
+        gbcBtn.fill = GridBagConstraints.NONE;
+
+        JButton btnStats   = new JButton("Thống kê");
+        JButton btnAdd     = new JButton("Thêm");
+        JButton btnEdit    = new JButton("Sửa");
+        JButton btnDelete  = new JButton("Xóa");
+        JButton btnImport  = new JButton("Import");
 
         btnStats.addActionListener(e -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             new ThiSinhThongKeDialog(parent, service).setVisible(true);
         });
-
         btnAdd.addActionListener(e -> addThiSinh());
         btnEdit.addActionListener(e -> updateThiSinh());
         btnDelete.addActionListener(e -> deleteThiSinh());
         btnImport.addActionListener(e -> importExcel());
 
-        btnPanel.add(btnStats);
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnEdit);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnImport);
+        gbcBtn.gridx = 0; btnPanel.add(btnStats, gbcBtn);
+        gbcBtn.gridx = 1; btnPanel.add(btnAdd, gbcBtn);
+        gbcBtn.gridx = 2; btnPanel.add(btnEdit, gbcBtn);
+        gbcBtn.gridx = 3; btnPanel.add(btnDelete, gbcBtn);
+        gbcBtn.gridx = 4; btnPanel.add(btnImport, gbcBtn);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
 
         topPanel.add(actionPanel);
-
         add(topPanel, BorderLayout.NORTH);
 
         tableModel = new DefaultTableModel(TableHeaders.THI_SINH, 0) {

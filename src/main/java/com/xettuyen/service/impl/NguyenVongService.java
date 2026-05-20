@@ -31,26 +31,22 @@ public class NguyenVongService {
         return (int) Math.max(1, Math.ceil((double) count / PAGE_SIZE));
     }
 
-    public List<NguyenVong> searchAnd(String cccd, String manganh, String ketqua, int page) {
-        String c = (cccd == null) ? "" : cccd.trim();
-        String m = (manganh == null) ? "" : manganh.trim();
-        String k = (ketqua == null) ? "" : ketqua.trim();
-
-        if (c.isBlank() && m.isBlank() && k.isBlank())
+    public List<NguyenVong> searchAnd(String cccd, String manganh, String ketqua, String phuongthuc, int page) {
+        String c = nvl(cccd), m = nvl(manganh), k = nvl(ketqua), p = nvl(phuongthuc);
+        if (c.isBlank() && m.isBlank() && k.isBlank() && p.isBlank())
             return repository.findAll(page, PAGE_SIZE);
-        return repository.searchAnd(c, m, k, page, PAGE_SIZE);
+        return repository.searchAnd(c, m, k, p, page, PAGE_SIZE);
     }
 
-    public int getTotalPagesAnd(String cccd, String manganh, String ketqua) {
-        String c = (cccd == null) ? "" : cccd.trim();
-        String m = (manganh == null) ? "" : manganh.trim();
-        String k = (ketqua == null) ? "" : ketqua.trim();
-
-        long count = (c.isBlank() && m.isBlank() && k.isBlank())
+    public int getTotalPagesAnd(String cccd, String manganh, String ketqua, String phuongthuc) {
+        String c = nvl(cccd), m = nvl(manganh), k = nvl(ketqua), p = nvl(phuongthuc);
+        long count = (c.isBlank() && m.isBlank() && k.isBlank() && p.isBlank())
                 ? repository.countAll()
-                : repository.countSearchAnd(c, m, k);
+                : repository.countSearchAnd(c, m, k, p);
         return (int) Math.max(1, Math.ceil((double) count / PAGE_SIZE));
     }
+
+    private String nvl(String s) { return s == null ? "" : s.trim(); }
 
     public NguyenVong findByNvKeys(String nvKeys) {
         if (nvKeys == null || nvKeys.isBlank()) return null;

@@ -39,34 +39,65 @@ public class ToHopMonPanel extends JPanel {
         JLabel title = new JLabel("QUẢN LÝ TỔ HỢP MÔN");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 0));
         topPanel.add(title);
 
-// ===== PANEL SEARCH + BUTTON =====
+// ---- SEARCH PANEL ----
         JPanel actionPanel = new JPanel(new BorderLayout());
         actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel searchPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+        gbc.anchor = GridBagConstraints.WEST;
 
         PlaceholderTextField matohopField = new PlaceholderTextField("Mã tổ hợp", 15);
         matohopField.setPlaceholderColor(Color.GRAY);
         txtMatohopSearch = matohopField;
 
         JButton btnSearch = new JButton("Tìm kiếm");
-        JButton btnReset = new JButton("Làm mới");
+        JButton btnReset  = new JButton("Làm mới");
 
         btnSearch.addActionListener(e -> search());
         btnReset.addActionListener(e -> reset());
         txtMatohopSearch.addActionListener(e -> search());
 
-        searchPanel.add(new JLabel("Mã tổ hợp:"));
-        searchPanel.add(txtMatohopSearch);
-        searchPanel.add(btnSearch);
-        searchPanel.add(btnReset);
+// Hàng 0: Labels
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 0; searchPanel.add(new JLabel("Mã tổ hợp:"), gbc);
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+// Hàng 1: Inputs + Buttons
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0; searchPanel.add(txtMatohopSearch, gbc);
 
-        JButton btnAdd = new JButton("Thêm");
-        JButton btnEdit = new JButton("Sửa");
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 1; searchPanel.add(btnSearch, gbc);
+        gbc.gridx = 2; searchPanel.add(btnReset, gbc);
+
+// ---- BTN PANEL ----
+        JPanel btnPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcBtn = new GridBagConstraints();
+        gbcBtn.insets = new Insets(2, 3, 2, 3);
+        gbcBtn.anchor = GridBagConstraints.EAST;
+
+// Hàng 0: placeholder
+        gbcBtn.gridy = 0;
+        gbcBtn.gridx = 0;
+        gbcBtn.gridwidth = 4;
+        gbcBtn.fill = GridBagConstraints.BOTH;
+        JLabel placeholder = new JLabel(" ");
+        placeholder.setPreferredSize(new Dimension(0, new JLabel("Mã tổ hợp:").getPreferredSize().height));
+        btnPanel.add(placeholder, gbcBtn);
+
+// Hàng 1: các nút
+        gbcBtn.gridy = 1;
+        gbcBtn.gridwidth = 1;
+        gbcBtn.fill = GridBagConstraints.NONE;
+
+        JButton btnAdd    = new JButton("Thêm");
+        JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnImport = new JButton("Import");
 
@@ -75,16 +106,15 @@ public class ToHopMonPanel extends JPanel {
         btnDelete.addActionListener(e -> deleteToHopMon());
         btnImport.addActionListener(e -> importExcel());
 
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnEdit);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnImport);
+        gbcBtn.gridx = 0; btnPanel.add(btnAdd, gbcBtn);
+        gbcBtn.gridx = 1; btnPanel.add(btnEdit, gbcBtn);
+        gbcBtn.gridx = 2; btnPanel.add(btnDelete, gbcBtn);
+        gbcBtn.gridx = 3; btnPanel.add(btnImport, gbcBtn);
 
         actionPanel.add(searchPanel, BorderLayout.WEST);
         actionPanel.add(btnPanel, BorderLayout.EAST);
 
         topPanel.add(actionPanel);
-
         add(topPanel, BorderLayout.NORTH);
 
         // ===== TABLE =====
