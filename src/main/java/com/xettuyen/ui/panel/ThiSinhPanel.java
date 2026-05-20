@@ -67,10 +67,10 @@ public class ThiSinhPanel extends JPanel {
 
         JButton btnStats = new JButton("Thống kê");
 
-        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnAdd = new JButton("Thêm");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
+        JButton btnImport = new JButton("Import");
 
         btnStats.addActionListener(e -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);

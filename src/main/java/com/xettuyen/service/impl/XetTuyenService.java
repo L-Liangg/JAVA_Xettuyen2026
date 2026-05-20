@@ -6,15 +6,14 @@ import com.xettuyen.repository.NganhRepository;
 import com.xettuyen.repository.NguyenVongRepository;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class XetTuyenService {
+    public interface ProgressListener {
+        void onProgress(int percent, String status);
+    }
+
     public static class Result {
         private final int total;
         private final int accepted;
@@ -43,108 +42,211 @@ public class XetTuyenService {
     private final NganhRepository nganhRepository = new NganhRepository();
 
     public Result runXetTuyenAll() {
-        List<NguyenVong> list = nguyenVongRepository.findAll();
-        List<Nganh> nganhList = nganhRepository.findAll();
+        return runXetTuyenAll(null);
+    }
 
-        Map<String, Nganh> nganhByMa = new HashMap<>();
-        Map<String, Integer> chiTieuByMa = new HashMap<>();
-        for (Nganh nganh : nganhList) {
-            if (nganh.getManganh() == null) continue;
-            nganhByMa.put(nganh.getManganh(), nganh);
-            chiTieuByMa.put(nganh.getManganh(), safeInt(nganh.getN_chitieu()));
+    public Result runXetTuyenAll(ProgressListener listener) {
+        updateProgress(listener, 0, "Đang chuẩn bị...");
+
+        // Lay du lieu
+        List<NguyenVong> allNguyenVong = nguyenVongRepository.findAll();
+        List<Nganh> allNganh = nganhRepository.findAll();
+
+        updateProgress(listener, 5, "Đang khởi tạo cấu trúc dữ liệu...");
+
+        // map manganh -> Nganh để tra cứu nhanh
+        Map<String, Nganh> nganhMap = allNganh.stream()
+                .filter(n -> n.getManganh() != null && !n.getManganh().isBlank())
+                .collect(Collectors.toMap(Nganh::getManganh, n -> n));
+
+        // loc nguyen vong hop le: manganh ton tai, diem xet tuyen hop le, phuong thuc
+        // hop le
+        List<NguyenVong> nvHopLe = new ArrayList<>();
+        for (NguyenVong nv : allNguyenVong) {
+            nv.setNv_ketqua("0"); // Reset ban đầu
+
+            String maNganh = nv.getNv_manganh();
+            Nganh nganh = nganhMap.get(maNganh);
+
+            if (nganh == null)
+                continue;
+            if (nv.getDiem_xettuyen() == null)
+                continue;
+            if (!isPhuongThucAllowed(nganh, nv.getTt_phuongthuc()))
+                continue;
+
+            BigDecimal diemSan = nganh.getN_diemsan();
+            if (diemSan != null && nv.getDiem_xettuyen().compareTo(diemSan) < 0)
+                continue;
+
+            BigDecimal diemTrungTuyen = nganh.getN_diemtrungtuyen();
+            if (diemTrungTuyen != null && nv.getDiem_xettuyen().compareTo(diemTrungTuyen) < 0)
+                continue;
+
+            nvHopLe.add(nv);
         }
 
-        Map<String, List<NguyenVong>> byCccd = new HashMap<>();
-        for (NguyenVong nv : list) {
-            nv.setNv_ketqua("0");
-            String cccd = nv.getNn_cccd();
-            if (cccd == null || cccd.isBlank()) continue;
-            byCccd.computeIfAbsent(cccd, k -> new ArrayList<>()).add(nv);
+        updateProgress(listener, 10, "Đang nhóm và sắp xếp theo điểm...");
+
+        // nhom theo manganh de xet tuyen tung nganh, dong thoi sap xep theo diem xet
+        // tuyen giam dan, neu bang diem thi uu tien NV nho hon
+        Map<String, List<NguyenVong>> nvTheoNganh = new HashMap<>();
+        for (NguyenVong nv : nvHopLe) {
+            nvTheoNganh.computeIfAbsent(nv.getNv_manganh(), k -> new ArrayList<>()).add(nv);
         }
 
-        int accepted = 0;
-
-        Comparator<NguyenVong> byScoreDesc = (a, b) -> {
-            BigDecimal da = a.getDiem_xettuyen();
-            BigDecimal db = b.getDiem_xettuyen();
-            if (da == null && db == null) return 0;
-            if (da == null) return 1;
-            if (db == null) return -1;
-            int cmp = db.compareTo(da);
-            if (cmp != 0) return cmp;
-            String ca = a.getNn_cccd() == null ? "" : a.getNn_cccd();
-            String cb = b.getNn_cccd() == null ? "" : b.getNn_cccd();
-            return ca.compareTo(cb);
-        };
-
-        List<String> sortedCccd = new ArrayList<>(byCccd.keySet());
-        sortedCccd.sort((a, b) -> {
-            BigDecimal maxA = maxDiemXetTuyen(byCccd.get(a));
-            BigDecimal maxB = maxDiemXetTuyen(byCccd.get(b));
-            if (maxA == null && maxB == null) return a.compareTo(b);
-            if (maxA == null) return 1;
-            if (maxB == null) return -1;
-            int cmp = maxB.compareTo(maxA);
-            if (cmp != 0) return cmp;
-            return a.compareTo(b);
-        });
-
-        for (String cccd : sortedCccd) {
-            List<NguyenVong> nvList = byCccd.getOrDefault(cccd, new ArrayList<>());
-            nvList.sort((a, b) -> {
-                Integer ta = a.getNv_tt();
-                Integer tb = b.getNv_tt();
-                if (ta == null && tb == null) return 0;
-                if (ta == null) return 1;
-                if (tb == null) return -1;
-                int cmp = Integer.compare(ta, tb);
-                if (cmp != 0) return cmp;
-                return byScoreDesc.compare(a, b);
+        // sap xep tung nganh theo diem xet tuyen giam dan, neu bang diem thi uu tien NV
+        // nho hon
+        for (List<NguyenVong> ds : nvTheoNganh.values()) {
+            ds.sort((a, b) -> {
+                int cmp = b.getDiem_xettuyen().compareTo(a.getDiem_xettuyen());
+                if (cmp != 0)
+                    return cmp;
+                return Integer.compare(a.getNv_tt(), b.getNv_tt());
             });
+        }
 
-            for (NguyenVong nv : nvList) {
-                String manganh = nv.getNv_manganh();
-                if (manganh == null || manganh.isBlank()) continue;
-                int conLai = chiTieuByMa.getOrDefault(manganh, 0);
-                if (conLai <= 0) continue;
+        updateProgress(listener, 20, "Bắt đầu lọc ảo...");
 
-                Nganh nganh = nganhByMa.get(manganh);
-                BigDecimal diemSan = nganh != null ? nganh.getN_diemsan() : null;
-                BigDecimal diemChuan = nganh != null ? nganh.getN_diemtrungtuyen() : null;
+        // loc ao
+        int soVongToiDa = 20;
+        boolean changed = true;
 
-                BigDecimal diemXt = nv.getDiem_xettuyen();
-                if (diemXt == null) continue;
-                if (diemSan != null && diemXt.compareTo(diemSan) < 0) continue;
-                if (diemChuan != null && diemXt.compareTo(diemChuan) < 0) continue;
+        for (int vong = 1; vong <= soVongToiDa && changed; vong++) {
+            System.out.println("bắt đầu vòng " + vong);
+            changed = false;
 
-                nv.setNv_ketqua("1");
-                accepted++;
-                chiTieuByMa.put(manganh, conLai - 1);
-                break;
+            updateProgress(listener,20 + Math.min(vong * 5, 70),"Lọc ảo vòng " + vong);
+
+            // reset
+            for (NguyenVong nv : nvHopLe) {
+                if (!"XND".equals(nv.getNv_ketqua())) {
+                    nv.setNv_ketqua("0");
+                }
+            }
+
+            // ngành lấy top
+            for (Map.Entry<String, List<NguyenVong>> entry : nvTheoNganh.entrySet()) {
+
+                List<NguyenVong> danhSach = entry.getValue();
+
+                Nganh nganh = nganhMap.get(entry.getKey());
+
+                int chiTieu = safeInt(nganh.getN_chitieu());
+
+                int count = 0;
+
+                for (NguyenVong nv : danhSach) {
+
+                    if ("XND".equals(nv.getNv_ketqua()))
+                        continue;
+
+                    if (count < chiTieu) {
+                        nv.setNv_ketqua("1");
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // gom tạm đỗ
+            Map<String, List<NguyenVong>> tamDoTheoThiSinh = new HashMap<>();
+
+            for (NguyenVong nv : nvHopLe) {
+
+                if ("1".equals(nv.getNv_ketqua())) {
+                    tamDoTheoThiSinh.computeIfAbsent(nv.getNn_cccd(),k -> new ArrayList<>()).add(nv);
+                }
+            }
+
+            // giữ NV cao nhất
+            for (List<NguyenVong> dsTamDo : tamDoTheoThiSinh.values()) {
+
+                if (dsTamDo.size() <= 1)
+                    continue;
+
+                dsTamDo.sort(Comparator.comparingInt(NguyenVong::getNv_tt));
+
+                for (int i = 1; i < dsTamDo.size(); i++) {
+
+                    NguyenVong nvBiHuy = dsTamDo.get(i);
+
+                    if (!"XND".equals(nvBiHuy.getNv_ketqua())) {
+
+                        nvBiHuy.setNv_ketqua("XND");
+
+                        changed = true;
+                    }
+                }
+            }
+
+            System.out.println("kết thúc vòng " + vong);
+            if(!changed) {
+                System.out.println("đã ổn định, dừng vòng " + vong);
             }
         }
 
-        nguyenVongRepository.updateAll(list);
+        // xac nhan ket qua - nhung nguyen vong tam dat "1" chinh thuc duoc chap nhan,
+        // cac nguyen vong con lai (bao gom ca nhung nguyen vong bi huy "XND") deu la
+        // truot "0"
+        updateProgress(listener, 85, "Tổng hợp kết quả...");
 
-        int total = list.size();
-        int rejected = total - accepted;
-        return new Result(total, accepted, rejected);
+        int accepted = 0;
+        Set<String> tatCaThiSinh = new HashSet<>();
+
+        for (NguyenVong nv : allNguyenVong) {
+            String cccd = nv.getNn_cccd();
+            if (cccd != null && !cccd.isBlank()) {
+                tatCaThiSinh.add(cccd);
+            }
+
+            if ("XND".equals(nv.getNv_ketqua())) {
+                nv.setNv_ketqua("0");
+            } else if ("1".equals(nv.getNv_ketqua())) {
+                accepted++; // Dem so luong thi sinh duoc chap nhan
+            }
+        }
+
+        updateProgress(listener, 95, "Đang cập nhật dữ liệu...");
+        nguyenVongRepository.updateAll(allNguyenVong);
+
+        updateProgress(listener, 100, "Hoàn tất xét tuyển.");
+
+        int total = tatCaThiSinh.size();
+        return new Result(total, accepted, total - accepted);
     }
 
     private static int safeInt(Integer value) {
         return value == null ? 0 : Math.max(0, value);
     }
 
-    private static BigDecimal maxDiemXetTuyen(List<NguyenVong> list) {
-        if (list == null || list.isEmpty()) return null;
-        BigDecimal max = null;
-        for (NguyenVong nv : list) {
-            BigDecimal d = nv.getDiem_xettuyen();
-            if (d == null) continue;
-            if (max == null || d.compareTo(max) > 0) {
-                max = d;
-            }
-        }
-        return max;
+    private static void updateProgress(ProgressListener listener, int percent, String status) {
+        if (listener == null)
+            return;
+        int safePercent = Math.max(0, Math.min(100, percent));
+        listener.onProgress(safePercent, status);
+    }
+
+    private static boolean isPhuongThucAllowed(Nganh nganh, String phuongThuc) {
+        if (nganh == null)
+            return false;
+        String normalized = normalize(phuongThuc);
+        return switch (normalized) {
+            case "THPT" -> isEnabled(nganh.getN_thpt());
+            case "DGNL" -> isEnabled(nganh.getN_dgnl());
+            case "VSAT" -> isEnabled(nganh.getN_vsat());
+            default -> false;
+        };
+    }
+
+    private static boolean isEnabled(String flag) {
+        return "1".equals(normalize(flag));
+    }
+
+    private static String normalize(String value) {
+        if (value == null)
+            return "";
+        return value.trim().toUpperCase();
     }
 }

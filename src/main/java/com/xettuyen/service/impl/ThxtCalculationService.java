@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+// import java.util.stream.Collectors;
 
 public class ThxtCalculationService {
     public interface ProgressListener {
@@ -65,13 +66,27 @@ public class ThxtCalculationService {
         List<NguyenVong> list = nguyenVongRepository.findAll();
         int total = list.size();
 
-        Map<String, List<BangQuyDoi>> quyDoiCache = new HashMap<>();
-
         if (listener != null) {
-            listener.onProgress(0, "Đang tính điểm xét tuyển...");
+            listener.onProgress(0, "Đang tải dữ liệu vào bộ nhớ...");
         }
 
+        // ========== LOAD ALL DATA TO MEMORY ONCE ==========
+        Map<String, DiemThi> diemThiMap = loadDiemThiMap();
+        Map<String, List<DiemThiDgnlVsat>> dgnlVsatMap = loadDgnlVsatMap();
+        Map<String, Nganh> nganhMap = loadNganhMap();
+        Map<String, List<NganhToHop>> toHopMap = loadToHopMap();
+        Map<String, List<DiemCong>> diemCongMap = loadDiemCongMap();
+        Map<String, ThiSinh> thiSinhMap = loadThiSinhMap();
+        Map<String, List<BangQuyDoi>> quyDoiCache = loadAllBangQuyDoi();
+
+        if (listener != null) {
+            listener.onProgress(10, "Đã tải xong dữ liệu, bắt đầu tính toán...");
+        }
+
+        List<NguyenVong> batchUpdateList = new ArrayList<>();
+        int batchSize = 500;
         int index = 0;
+
         for (NguyenVong nv : list) {
             index++;
             nv.setDiem_thxt(ZERO_OUTPUT);
@@ -85,71 +100,81 @@ public class ThxtCalculationService {
 
             if (cccd.isEmpty()) {
                 warnings.add(nvKey + ": thiếu CCCD.");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
             if (manganh.isEmpty()) {
                 warnings.add(nvKey + ": thiếu mã ngành.");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
             if (phuongthuc.isEmpty()) {
                 warnings.add(nvKey + ": thiếu phương thức.");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
 
-            Nganh nganh = nganhRepository.findByManganh(manganh);
+            Nganh nganh = nganhMap.get(manganh);
             if (nganh == null) {
                 warnings.add(nvKey + ": không tìm thấy ngành " + manganh + ".");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
 
-            List<NganhToHop> toHops = nganhToHopRepository.findAllByManganh(manganh);
+            List<NganhToHop> toHops = toHopMap.get(manganh);
             if (toHops == null || toHops.isEmpty()) {
                 warnings.add(nvKey + ": ngành chưa có tổ hợp xét tuyển.");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
 
-            applyDiemCong(nv);
+            applyDiemCongFromMap(nv, diemCongMap);
 
             DiemThi diemThi = null;
             Map<String, BigDecimal> dgnlVsatByMon = null;
             BigDecimal dgnlTotalRaw = null;
 
             if (isPhuongThuc(phuongthuc, "THPT")) {
-                diemThi = diemThiRepository.findByCccd(cccd);
+                diemThi = diemThiMap.get(cccd);
                 if (diemThi == null) {
                     warnings.add(nvKey + ": không tìm thấy điểm THPT.");
-                    nguyenVongRepository.update(nv);
+                    batchUpdateList.add(nv);
+                    flushBatchIfNeeded(batchUpdateList, batchSize);
                     continue;
                 }
             } else if (isPhuongThuc(phuongthuc, "VSAT")) {
-                List<DiemThiDgnlVsat> listDv = diemThiDgnlVsatRepository.findAllByCccd(cccd);
+                List<DiemThiDgnlVsat> listDv = dgnlVsatMap.get(cccd);
                 if (listDv == null || listDv.isEmpty()) {
                     warnings.add(nvKey + ": không tìm thấy điểm " + phuongthuc + ".");
-                    nguyenVongRepository.update(nv);
+                    batchUpdateList.add(nv);
+                    flushBatchIfNeeded(batchUpdateList, batchSize);
                     continue;
                 }
                 dgnlVsatByMon = indexDiemByMon(listDv);
             } else if (isPhuongThuc(phuongthuc, "DGNL")) {
-                List<DiemThiDgnlVsat> listDv = diemThiDgnlVsatRepository.findAllByCccd(cccd);
+                List<DiemThiDgnlVsat> listDv = dgnlVsatMap.get(cccd);
                 if (listDv == null || listDv.isEmpty()) {
                     warnings.add(nvKey + ": không tìm thấy điểm " + phuongthuc + ".");
-                    nguyenVongRepository.update(nv);
+                    batchUpdateList.add(nv);
+                    flushBatchIfNeeded(batchUpdateList, batchSize);
                     continue;
                 }
                 dgnlTotalRaw = findBestDgnlTotal(listDv);
                 if (dgnlTotalRaw == null) {
                     warnings.add(nvKey + ": không xác định được tổng điểm DGNL.");
-                    nguyenVongRepository.update(nv);
+                    batchUpdateList.add(nv);
+                    flushBatchIfNeeded(batchUpdateList, batchSize);
                     continue;
                 }
             } else {
                 warnings.add(nvKey + ": phương thức không hợp lệ: " + phuongthuc + ".");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
 
@@ -180,29 +205,45 @@ public class ThxtCalculationService {
 
             if (best == null) {
                 warnings.add(nvKey + ": không tính được điểm THXT cho bất kỳ tổ hợp nào.");
-                nguyenVongRepository.update(nv);
+                batchUpdateList.add(nv);
                 if (listener != null && shouldReportProgress(index, total)) {
                     listener.onProgress(calcPercent(index, total), "Đang tính: " + index + "/" + total);
                 }
+                flushBatchIfNeeded(batchUpdateList, batchSize);
                 continue;
             }
 
             nv.setDiem_thxt(bestThxtRaw.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP));
             nv.setTt_thm(bestToHop);
-            applyDiemUtqd(nv, bestThxtRaw, warnings, nvKey);
+            applyDiemUtqdFromMap(nv, bestThxtRaw, thiSinhMap, warnings, nvKey);
             applyDiemXetTuyen(nv, best);
-            nguyenVongRepository.update(nv);
+            
+            batchUpdateList.add(nv);
 
             if (listener != null && shouldReportProgress(index, total)) {
                 listener.onProgress(calcPercent(index, total), "Đang tính: " + index + "/" + total);
             }
+            
+            flushBatchIfNeeded(batchUpdateList, batchSize);
+        }
+
+        // Flush remaining records
+        if (!batchUpdateList.isEmpty()) {
+            nguyenVongRepository.batchUpdate(batchUpdateList);
         }
 
         if (listener != null) {
-            listener.onProgress(100, "Hoàn thành tính điểm  .");
+            listener.onProgress(100, "Hoàn thành tính điểm.");
         }
 
         return warnings;
+    }
+
+    private void flushBatchIfNeeded(List<NguyenVong> batch, int batchSize) {
+        if (batch.size() >= batchSize) {
+            nguyenVongRepository.batchUpdate(new ArrayList<>(batch));
+            batch.clear();
+        }
     }
 
     private boolean shouldReportProgress(int index, int total) {
@@ -214,6 +255,166 @@ public class ThxtCalculationService {
     private int calcPercent(int index, int total) {
         if (total <= 0) return 100;
         return Math.min(100, (int) Math.round(index * 100.0 / total));
+    }
+
+    // ========== LOAD METHODS ==========
+
+    private Map<String, DiemThi> loadDiemThiMap() {
+        Map<String, DiemThi> map = new HashMap<>();
+        List<DiemThi> all = diemThiRepository.findAll();
+        for (DiemThi dt : all) {
+            if (dt.getCccd() != null) {
+                map.put(normalize(dt.getCccd()), dt);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, List<DiemThiDgnlVsat>> loadDgnlVsatMap() {
+        Map<String, List<DiemThiDgnlVsat>> map = new HashMap<>();
+        List<DiemThiDgnlVsat> all = diemThiDgnlVsatRepository.findAll();
+        for (DiemThiDgnlVsat dv : all) {
+            if (dv.getCccd() != null) {
+                String key = normalize(dv.getCccd());
+                map.computeIfAbsent(key, k -> new ArrayList<>()).add(dv);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, Nganh> loadNganhMap() {
+        Map<String, Nganh> map = new HashMap<>();
+        List<Nganh> all = nganhRepository.findAll();
+        for (Nganh n : all) {
+            if (n.getManganh() != null) {
+                map.put(normalize(n.getManganh()), n);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, List<NganhToHop>> loadToHopMap() {
+        Map<String, List<NganhToHop>> map = new HashMap<>();
+        List<NganhToHop> all = nganhToHopRepository.findAll();
+        for (NganhToHop th : all) {
+            if (th.getManganh() != null) {
+                String key = normalize(th.getManganh());
+                map.computeIfAbsent(key, k -> new ArrayList<>()).add(th);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, List<DiemCong>> loadDiemCongMap() {
+        Map<String, List<DiemCong>> map = new HashMap<>();
+        List<DiemCong> all = diemCongRepository.findAll();
+        for (DiemCong dc : all) {
+            if (dc.getTs_cccd() != null) {
+                String key = normalize(dc.getTs_cccd());
+                map.computeIfAbsent(key, k -> new ArrayList<>()).add(dc);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, ThiSinh> loadThiSinhMap() {
+        Map<String, ThiSinh> map = new HashMap<>();
+        List<ThiSinh> all = thiSinhRepository.findAll();
+        for (ThiSinh ts : all) {
+            if (ts.getCccd() != null) {
+                map.put(normalize(ts.getCccd()), ts);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, List<BangQuyDoi>> loadAllBangQuyDoi() {
+        Map<String, List<BangQuyDoi>> map = new HashMap<>();
+        List<BangQuyDoi> all = bangQuyDoiRepository.findAll();
+        for (BangQuyDoi bqd : all) {
+            if (bqd.getD_phuongthuc() != null) {
+                String key;
+                if ("DGNL".equalsIgnoreCase(bqd.getD_phuongthuc()) && bqd.getD_tohop() != null) {
+                    key = "DGNL|TOHOP|" + normalize(bqd.getD_tohop());
+                } else if (bqd.getD_mon() != null) {
+                    key = normalize(bqd.getD_phuongthuc()) + "|" + normalize(bqd.getD_mon());
+                } else {
+                    continue;
+                }
+                map.computeIfAbsent(key, k -> new ArrayList<>()).add(bqd);
+            }
+        }
+        // Sort each list by d_diema for binary search
+        for (List<BangQuyDoi> list : map.values()) {
+            list.sort((a, b) -> a.getD_diema().compareTo(b.getD_diema()));
+        }
+        return map;
+    }
+
+    // ========== MODIFIED METHODS USING MAPS ==========
+
+    private void applyDiemCongFromMap(NguyenVong nv, Map<String, List<DiemCong>> diemCongMap) {
+        String cccd = normalize(nv.getNn_cccd());
+        if (cccd.isEmpty()) return;
+
+        List<DiemCong> list = diemCongMap.get(cccd);
+        if (list == null || list.isEmpty()) return;
+
+        String manganh = normalize(nv.getNv_manganh());
+        String phuongthuc = normalize(nv.getTt_phuongthuc());
+
+        DiemCong best = null;
+        for (DiemCong dc : list) {
+            if (dc.getDiemTong() == null) continue;
+            if (!manganh.isEmpty() && !manganh.equals(normalize(dc.getManganh()))) continue;
+            if (!phuongthuc.isEmpty() && !phuongthuc.equals(normalize(dc.getPhuongthuc()))) continue;
+            if (best == null || dc.getDiemTong().compareTo(best.getDiemTong()) > 0) {
+                best = dc;
+            }
+        }
+
+        if (best == null) {
+            for (DiemCong dc : list) {
+                if (dc.getDiemTong() == null) continue;
+                if (best == null || dc.getDiemTong().compareTo(best.getDiemTong()) > 0) {
+                    best = dc;
+                }
+            }
+        }
+
+        if (best != null) {
+            nv.setDiem_cong(best.getDiemTong());
+        }
+    }
+
+    private void applyDiemUtqdFromMap(NguyenVong nv, BigDecimal thxtRaw,
+                                       Map<String, ThiSinh> thiSinhMap,
+                                       List<String> warnings, String nvKey) {
+        if (thxtRaw == null) return;
+        String cccd = normalize(nv.getNn_cccd());
+        if (cccd.isEmpty()) return;
+
+        ThiSinh ts = thiSinhMap.get(cccd);
+        if (ts == null) {
+            warnings.add(nvKey + ": khong tim thay thong tin thi sinh de tinh UTQD.");
+            return;
+        }
+
+        BigDecimal diemCong = nv.getDiem_cong() == null ? ZERO : nv.getDiem_cong();
+        BigDecimal mUuTien = getDiemDoiTuong(ts.getDoi_tuong()).add(getDiemKhuVuc(ts.getKhu_vuc()));
+        BigDecimal thxtCong = thxtRaw.add(diemCong);
+
+        BigDecimal utqd;
+        if (thxtCong.compareTo(BigDecimal.valueOf(22.5)) < 0) {
+            utqd = mUuTien;
+        } else {
+            BigDecimal numerator = BigDecimal.valueOf(30).subtract(thxtRaw).subtract(diemCong);
+            BigDecimal ratio = numerator.divide(BigDecimal.valueOf(7.5), SCALE_INTERNAL, RoundingMode.HALF_UP);
+            utqd = ratio.multiply(mUuTien);
+        }
+
+        if (utqd.compareTo(ZERO) < 0) utqd = ZERO;
+        nv.setDiem_utqd(utqd.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP));
     }
 
     private BigDecimal computeThxtForToHop(
@@ -317,15 +518,11 @@ public class ThxtCalculationService {
         }
         String key = "DGNL|TOHOP|" + tohop;
         List<BangQuyDoi> rows = quyDoiCache.get(key);
-        if (rows == null) {
-            rows = bangQuyDoiRepository.findByPhuongthucTohop("DGNL", tohop);
-            quyDoiCache.put(key, rows);
-        }
         if (rows == null || rows.isEmpty()) {
             warnings.add(nvKey + ": thiếu bảng quy đổi DGNL cho tổ hợp " + tohop + ".");
             return null;
         }
-        return convertRawByRows(raw, rows, warnings, nvKey, "DGNL tổng");
+        return convertRawByRowsOptimized(raw, rows, warnings, nvKey, "DGNL tổng");
     }
 
     private BigDecimal convertByBangQuyDoi(
@@ -338,44 +535,60 @@ public class ThxtCalculationService {
     ) {
         String key = phuongthuc + "|" + monThpt;
         List<BangQuyDoi> rows = quyDoiCache.get(key);
-        if (rows == null) {
-            rows = bangQuyDoiRepository.findByPhuongthucMon(phuongthuc, monThpt);
-            quyDoiCache.put(key, rows);
-        }
         if (rows == null || rows.isEmpty()) {
             warnings.add(nvKey + ": thiếu bảng quy đổi " + phuongthuc + " cho môn " + monThpt + ".");
             return null;
         }
-        return convertRawByRows(raw, rows, warnings, nvKey, monThpt);
+        return convertRawByRowsOptimized(raw, rows, warnings, nvKey, monThpt);
     }
 
-    private BigDecimal convertRawByRows(
+    private BigDecimal convertRawByRowsOptimized(
             BigDecimal raw,
             List<BangQuyDoi> rows,
             List<String> warnings,
             String nvKey,
             String label
     ) {
+        if (rows == null || rows.isEmpty()) return null;
+
+        // Binary search for the matching range
+        int left = 0, right = rows.size() - 1;
         BangQuyDoi matched = null;
-        for (BangQuyDoi row : rows) {
-            if (row.getD_diema() == null || row.getD_diemb() == null
-                    || row.getD_diemc() == null || row.getD_diemd() == null) {
+
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            BangQuyDoi row = rows.get(mid);
+            BigDecimal a = row.getD_diema();
+            BigDecimal b = row.getD_diemb();
+
+            if (a == null || b == null) {
+                // Skip invalid rows during binary search
+                left++;
                 continue;
             }
-            if (raw.compareTo(row.getD_diema()) > 0 && raw.compareTo(row.getD_diemb()) <= 0) {
+
+            if (raw.compareTo(a) > 0 && raw.compareTo(b) <= 0) {
                 matched = row;
                 break;
+            } else if (raw.compareTo(a) <= 0) {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
             }
         }
 
         if (matched == null) {
-            BangQuyDoi first = rows.get(0);
-            BangQuyDoi last = rows.get(rows.size() - 1);
-            if (raw.compareTo(first.getD_diema()) <= 0) {
-                matched = first;
-            } else if (raw.compareTo(last.getD_diemb()) > 0) {
-                matched = last;
+            // Check boundaries
+            if (!rows.isEmpty()) {
+                BangQuyDoi first = rows.get(0);
+                BangQuyDoi last = rows.get(rows.size() - 1);
+                if (first.getD_diema() != null && raw.compareTo(first.getD_diema()) <= 0) {
+                    matched = first;
+                } else if (last.getD_diemb() != null && raw.compareTo(last.getD_diemb()) > 0) {
+                    matched = last;
+                }
             }
+            
             if (matched == null) {
                 warnings.add(nvKey + ": điểm " + label + " ngoài phạm vi bảng quy đổi.");
                 return null;
@@ -446,65 +659,6 @@ public class ThxtCalculationService {
         BigDecimal dolech = toHop.getDolech();
         if (dolech == null) dolech = ZERO;
         return thxt.subtract(dolech);
-    }
-
-    private void applyDiemCong(NguyenVong nv) {
-        if (nv.getNn_cccd() == null || nv.getNn_cccd().trim().isEmpty()) return;
-        List<DiemCong> list = diemCongRepository.findByCccd(nv.getNn_cccd().trim());
-        if (list == null || list.isEmpty()) return;
-
-        String manganh = normalize(nv.getNv_manganh());
-        String phuongthuc = normalize(nv.getTt_phuongthuc());
-
-        DiemCong best = null;
-        for (DiemCong dc : list) {
-            if (dc.getDiemTong() == null) continue;
-            if (!manganh.isEmpty() && !manganh.equalsIgnoreCase(normalize(dc.getManganh()))) continue;
-            if (!phuongthuc.isEmpty() && !phuongthuc.equalsIgnoreCase(normalize(dc.getPhuongthuc()))) continue;
-            if (best == null || dc.getDiemTong().compareTo(best.getDiemTong()) > 0) {
-                best = dc;
-            }
-        }
-
-        if (best == null) {
-            for (DiemCong dc : list) {
-                if (dc.getDiemTong() == null) continue;
-                if (best == null || dc.getDiemTong().compareTo(best.getDiemTong()) > 0) {
-                    best = dc;
-                }
-            }
-        }
-
-        if (best != null) {
-            nv.setDiem_cong(best.getDiemTong());
-        }
-    }
-
-    private void applyDiemUtqd(NguyenVong nv, BigDecimal thxtRaw, List<String> warnings, String nvKey) {
-        if (thxtRaw == null) return;
-        if (nv.getNn_cccd() == null || nv.getNn_cccd().trim().isEmpty()) return;
-
-        ThiSinh ts = thiSinhRepository.findByCccd(nv.getNn_cccd().trim());
-        if (ts == null) {
-            warnings.add(nvKey + ": khong tim thay thong tin thi sinh de tinh UTQD.");
-            return;
-        }
-
-        BigDecimal diemCong = nv.getDiem_cong() == null ? ZERO : nv.getDiem_cong();
-        BigDecimal mUuTien = getDiemDoiTuong(ts.getDoi_tuong()).add(getDiemKhuVuc(ts.getKhu_vuc()));
-        BigDecimal thxtCong = thxtRaw.add(diemCong);
-
-        BigDecimal utqd;
-        if (thxtCong.compareTo(BigDecimal.valueOf(22.5)) < 0) {
-            utqd = mUuTien;
-        } else {
-            BigDecimal numerator = BigDecimal.valueOf(30).subtract(thxtRaw).subtract(diemCong);
-            BigDecimal ratio = numerator.divide(BigDecimal.valueOf(7.5), SCALE_INTERNAL, RoundingMode.HALF_UP);
-            utqd = ratio.multiply(mUuTien);
-        }
-
-        if (utqd.compareTo(ZERO) < 0) utqd = ZERO;
-        nv.setDiem_utqd(utqd.setScale(SCALE_OUTPUT, RoundingMode.HALF_UP));
     }
 
     private void applyDiemXetTuyen(NguyenVong nv, BigDecimal thgxt) {

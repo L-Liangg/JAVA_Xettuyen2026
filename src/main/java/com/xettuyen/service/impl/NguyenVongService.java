@@ -31,19 +31,24 @@ public class NguyenVongService {
         return (int) Math.max(1, Math.ceil((double) count / PAGE_SIZE));
     }
 
-    public List<NguyenVong> searchAnd(String cccd, String manganh, int page) {
+    public List<NguyenVong> searchAnd(String cccd, String manganh, String ketqua, int page) {
         String c = (cccd == null) ? "" : cccd.trim();
         String m = (manganh == null) ? "" : manganh.trim();
-        if (c.isBlank() && m.isBlank()) return repository.findAll(page, PAGE_SIZE);
-        return repository.searchAnd(c, m, page, PAGE_SIZE);
+        String k = (ketqua == null) ? "" : ketqua.trim();
+
+        if (c.isBlank() && m.isBlank() && k.isBlank())
+            return repository.findAll(page, PAGE_SIZE);
+        return repository.searchAnd(c, m, k, page, PAGE_SIZE);
     }
 
-    public int getTotalPagesAnd(String cccd, String manganh) {
+    public int getTotalPagesAnd(String cccd, String manganh, String ketqua) {
         String c = (cccd == null) ? "" : cccd.trim();
         String m = (manganh == null) ? "" : manganh.trim();
-        long count = (c.isBlank() && m.isBlank())
+        String k = (ketqua == null) ? "" : ketqua.trim();
+
+        long count = (c.isBlank() && m.isBlank() && k.isBlank())
                 ? repository.countAll()
-                : repository.countSearchAnd(c, m);
+                : repository.countSearchAnd(c, m, k);
         return (int) Math.max(1, Math.ceil((double) count / PAGE_SIZE));
     }
 
@@ -75,4 +80,9 @@ public class NguyenVongService {
     public XetTuyenService.Result runXetTuyenAll() {
         return new XetTuyenService().runXetTuyenAll();
     }
+
+    public XetTuyenService.Result runXetTuyenAll(XetTuyenService.ProgressListener listener) {
+        return new XetTuyenService().runXetTuyenAll(listener);
+    }
 }
+

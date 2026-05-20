@@ -72,10 +72,10 @@ public class BangQuyDoiPanel extends JPanel {
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnAdd    = new JButton("Thêm");
         JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
+        JButton btnImport = new JButton("Import");
 
         btnAdd.addActionListener(e -> addBangQuyDoi());
         btnEdit.addActionListener(e -> updateBangQuyDoi());

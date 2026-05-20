@@ -79,11 +79,11 @@ public class DiemThiPanel extends JPanel {
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton btnAdd = new JButton("Thêm mới");
+        JButton btnAdd = new JButton("Thêm");
         JButton btnEdit = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
         JButton btnStats = new JButton("Thống kê");
-        JButton btnImport = new JButton("Import Excel");
+        JButton btnImport = new JButton("Import");
 
         btnAdd.addActionListener(e -> addDiemThi());
         btnEdit.addActionListener(e -> updateDiemThi());

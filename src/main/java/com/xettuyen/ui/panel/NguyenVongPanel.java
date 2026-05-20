@@ -29,6 +29,7 @@ public class NguyenVongPanel extends JPanel {
     private int currentPage = 1;
     private JTextField txtCccdSearch;
     private JTextField txtManganhSearch;
+    private JComboBox<String> cboKetqua;
 
     public NguyenVongPanel() {
         setLayout(new BorderLayout(10, 10));
@@ -51,13 +52,16 @@ public class NguyenVongPanel extends JPanel {
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 14);
+        PlaceholderTextField cccdField = new PlaceholderTextField("CCCD", 10);
         cccdField.setPlaceholderColor(Color.GRAY);
         txtCccdSearch = cccdField;
 
-        PlaceholderTextField manganhField = new PlaceholderTextField("Mã ngành", 12);
+        PlaceholderTextField manganhField = new PlaceholderTextField("Mã ngành", 10);
         manganhField.setPlaceholderColor(Color.GRAY);
         txtManganhSearch = manganhField;
+
+        String[] ketquaOptions = {"", "Trúng tuyển", "Rớt"};
+        cboKetqua = new JComboBox<>(ketquaOptions);
 
         JButton btnSearch = new JButton("Tìm kiếm");
         JButton btnReset  = new JButton("Làm mới");
@@ -66,20 +70,23 @@ public class NguyenVongPanel extends JPanel {
         btnReset.addActionListener(e -> reset());
         txtCccdSearch.addActionListener(e -> search());
         txtManganhSearch.addActionListener(e -> search());
+        cboKetqua.addActionListener(e -> search());
 
         searchPanel.add(new JLabel("CCCD:"));
         searchPanel.add(txtCccdSearch);
         searchPanel.add(new JLabel("Mã ngành:"));
         searchPanel.add(txtManganhSearch);
+        searchPanel.add(new JLabel("Kết quả:"));
+        searchPanel.add(cboKetqua);
         searchPanel.add(btnSearch);
         searchPanel.add(btnReset);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton btnAdd    = new JButton("Thêm mới");
+        JButton btnAdd    = new JButton("Thêm");
         JButton btnEdit   = new JButton("Sửa");
         JButton btnDelete = new JButton("Xóa");
-        JButton btnImport = new JButton("Import Excel");
+        JButton btnImport = new JButton("Import");
         JButton btnXetTuyen = new JButton("Xét tuyển");
 
         btnAdd.addActionListener(e -> addNguyenVong());
@@ -124,10 +131,11 @@ public class NguyenVongPanel extends JPanel {
     private void loadData() {
         String cccd = txtCccdSearch != null ? txtCccdSearch.getText().trim() : "";
         String manganh = txtManganhSearch != null ? txtManganhSearch.getText().trim() : "";
-        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, manganh));
+        String ketqua = Objects.equals(cboKetqua.getSelectedItem(), "Trúng tuyển") ? "1" : Objects.equals((String) cboKetqua.getSelectedItem(), "Rớt") ? "0" : "";
+        int totalPages = Math.max(1, service.getTotalPagesAnd(cccd, manganh, ketqua));
         if (currentPage > totalPages) currentPage = totalPages;
 
-        List<NguyenVong> list = service.searchAnd(cccd, manganh, currentPage);
+        List<NguyenVong> list = service.searchAnd(cccd, manganh, ketqua, currentPage);
         paginationPanel.update(currentPage, totalPages);
 
         tableModel.setRowCount(0);
@@ -153,6 +161,12 @@ public class NguyenVongPanel extends JPanel {
         txtManganhSearch.setText("");
         currentPage = 1;
         paginationPanel.reset();
+        // JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        // CalculationProgressDialog progressDialog = new CalculationProgressDialog(parent);
+        // List<String> warnings = progressDialog.startCalculation(
+        //         () -> service.recalculateThxtAll(progressDialog::updateProgress)
+        // );
+        // showCalcWarnings(warnings);
         loadData();
     }
 
@@ -293,30 +307,6 @@ public class NguyenVongPanel extends JPanel {
             txtKetQua.setText(Objects.toString(existing.getNv_ketqua(), ""));
             txtThm.setText(Objects.toString(existing.getTt_thm(), ""));
         }
-        txtDiemXt.setEditable(false);
-
-        // Tự động tính lại điểm xét tuyển khi thay đổi điểm thi, điểm ưu tiên quy đổi hoặc điểm cộng
-        javax.swing.event.DocumentListener recomputeListener = new javax.swing.event.DocumentListener() {
-            @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
-            }
-
-            @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
-            }
-
-            @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
-            }
-        };
-
-        txtDiemThxt.getDocument().addDocumentListener(recomputeListener);
-        txtDiemUtqd.getDocument().addDocumentListener(recomputeListener);
-        txtDiemCong.getDocument().addDocumentListener(recomputeListener);
-        updateDiemXetTuyenField(txtDiemThxt, txtDiemUtqd, txtDiemCong, txtDiemXt);
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
         form.add(new JLabel("CCCD:"));
@@ -408,16 +398,14 @@ public class NguyenVongPanel extends JPanel {
                     "Chi tiết lỗi", JOptionPane.WARNING_MESSAGE);
         }
 
-        showCalcWarnings(recalculateWithLoading());
+        JFrame recalcParent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CalculationProgressDialog recalcDialog = new CalculationProgressDialog(recalcParent);
+        List<String> warnings = recalcDialog.startCalculation(
+            () -> service.recalculateThxtAll(recalcDialog::updateProgress)
+        );
+        showCalcWarnings(warnings);
 
         loadData();
-    }
-
-    private List<String> recalculateWithLoading() {
-        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
-        return dialog.startCalculation(() -> service.recalculateThxtAll((percent, status) ->
-                dialog.updateProgress(percent, status)));
     }
 
     private void runXetTuyen() {
@@ -429,38 +417,25 @@ public class NguyenVongPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-        CalculationProgressDialog dialog = new CalculationProgressDialog(parent);
-        dialog.updateProgress(0, "Đang xét tuyển...");
+        CalculationProgressDialog progressDialog = new CalculationProgressDialog(parent);
+        progressDialog.updateProgress(0, "Dang xet tuyen...");
 
-        SwingWorker<XetTuyenService.Result, Void> worker = new SwingWorker<>() {
-            @Override
-            protected XetTuyenService.Result doInBackground() {
-                return service.runXetTuyenAll();
-            }
+        XetTuyenService.Result result = progressDialog.startTask(() ->
+            service.runXetTuyenAll(progressDialog::updateProgress)
+        );
 
-            @Override
-            protected void done() {
-                try {
-                    XetTuyenService.Result result = get();
-                    dialog.updateProgress(100, "Hoàn tất xét tuyển.");
-                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
-                            "Đã xét tuyển. Đậu: " + result.getAccepted() +
-                            ", Rớt: " + result.getRejected() +
-                            ", Tổng: " + result.getTotal(),
-                            "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
-                    loadData();
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(NguyenVongPanel.this,
-                            "Có lỗi khi xét tuyển:\n" + ex.getMessage(),
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
-                } finally {
-                    dialog.dispose();
-                }
-            }
-        };
-
-        worker.execute();
-        dialog.setVisible(true);
+        if (result != null) {
+            JOptionPane.showMessageDialog(this,
+                "Đã xét tuyển. Đậu: " + result.getAccepted() +
+                ", Rớt: " + result.getRejected() +
+                ", Tổng: " + result.getTotal(),
+                "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Xét tuyển thất bại.",
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+        loadData();
     }
 
     private void applyKetQuaRenderer() {
@@ -522,34 +497,6 @@ public class NguyenVongPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
             return null;
         }
-    }
-
-    private static BigDecimal parseDecimalOrZeroSilent(String value) {
-        String trimmed = blankToNull(value);
-        if (trimmed == null) return BigDecimal.ZERO;
-        try {
-            return new BigDecimal(trimmed);
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    private static void updateDiemXetTuyenField(
-            JTextField txtDiemThxt,
-            JTextField txtDiemUtqd,
-            JTextField txtDiemCong,
-            JTextField txtDiemXt
-    ) {
-        BigDecimal thxt = parseDecimalOrZeroSilent(txtDiemThxt.getText());
-        BigDecimal utqd = parseDecimalOrZeroSilent(txtDiemUtqd.getText());
-        BigDecimal cong = parseDecimalOrZeroSilent(txtDiemCong.getText());
-        if (thxt == null || utqd == null || cong == null) {
-            txtDiemXt.setText("");
-            return;
-        }
-        BigDecimal sum = thxt.add(utqd).add(cong);
-        BigDecimal capped = sum.min(BigDecimal.valueOf(30));
-        txtDiemXt.setText(toText(capped));
     }
 
     private static String toText(BigDecimal value) {
