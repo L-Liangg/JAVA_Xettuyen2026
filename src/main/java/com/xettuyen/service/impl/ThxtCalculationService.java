@@ -671,11 +671,27 @@ public class ThxtCalculationService {
     }
 
     private BigDecimal getDiemDoiTuong(String doiTuong) {
-        if (doiTuong == null) return ZERO;
+        if (doiTuong == null)
+            return ZERO;
         String val = doiTuong.trim().toUpperCase(Locale.ROOT);
-        if (val.isEmpty()) return ZERO;
-        if (val.contains("01")) return BigDecimal.valueOf(2.0);
-        if (val.contains("06A")) return BigDecimal.valueOf(1.0);
+        if (val.isEmpty())
+            return ZERO;
+        if (val.contains("01") ||
+                val.contains("03B") ||
+                val.contains("03C") ||
+                val.contains("03D")) {
+            return BigDecimal.valueOf(2.0);
+        }
+
+        if (val.contains("04A") ||
+                val.contains("04B") ||
+                val.contains("05B") ||
+                val.contains("06A") ||
+                val.contains("06B") ||
+                val.contains("06C") ||
+                val.contains("07A")) {
+            return BigDecimal.valueOf(1.0);
+        }
         return ZERO;
     }
 
