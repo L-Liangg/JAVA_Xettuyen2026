@@ -173,7 +173,7 @@ public class ThiSinhPanel extends JPanel {
             tableModel.addRow(new Object[]{
                     ts.getCccd(), ts.getSobaodanh(), ts.getHo(), ts.getTen(),
                     ts.getNgay_sinh(), ts.getDien_thoai(), ts.getGioi_tinh(),
-                    ts.getEmail(), ts.getPassword(), ts.getNoi_sinh(), ts.getUpdated_at(),
+                    ts.getEmail(), ts.getNoi_sinh(), ts.getUpdated_at(),
                     ts.getDoi_tuong(), ts.getKhu_vuc()
             });
         }
