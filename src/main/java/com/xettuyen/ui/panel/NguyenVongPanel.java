@@ -69,7 +69,7 @@ public class NguyenVongPanel extends JPanel {
         String[] ketquaOptions = {"", "Trúng tuyển", "Rớt"};
         cboKetqua = new JComboBox<>(ketquaOptions);
 
-        String[] phuongthucOptions = {"", "THPT", "ĐGNL", "VSAT"};
+        String[] phuongthucOptions = {"", "THPT", "DGNL", "VSAT"};
         cboPhuongThuc = new JComboBox<>(phuongthucOptions);
         cboPhuongThuc.addActionListener(e -> search());
 
